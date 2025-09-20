@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { initialGameState } from '../types/game.js';
 import { gameLogic } from '../utils/gameLogic.js';
+import { initialFinanceState, financeHelpers } from '../types/finance.js';
 
 // Создаем контекст
 const GameContext = createContext();
@@ -16,14 +17,23 @@ const GAME_ACTIONS = {
   SET_GAME_SPEED: 'SET_GAME_SPEED',
   SAVE_GAME: 'SAVE_GAME',
   RESET_GAME: 'RESET_GAME',
-  CLEAR_ERROR: 'CLEAR_ERROR'
+  CLEAR_ERROR: 'CLEAR_ERROR',
+  // Новые действия для финансовой системы
+  REALLOCATE_BUDGET: 'REALLOCATE_BUDGET',
+  PERFORM_CORRUPTION: 'PERFORM_CORRUPTION',
+  TRANSFER_PERSONAL_FUNDS: 'TRANSFER_PERSONAL_FUNDS',
+  UPDATE_FINANCE_STATE: 'UPDATE_FINANCE_STATE'
 };
 
 // Reducer для управления состоянием игры
 const gameReducer = (state, action) => {
   switch (action.type) {
     case GAME_ACTIONS.LOAD_GAME:
-      return action.payload || initialGameState;
+      const loadedState = action.payload || initialGameState;
+      return {
+        ...loadedState,
+        financeState: loadedState.financeState || initialFinanceState
+      };
 
     case GAME_ACTIONS.UPDATE_GAME_STATE:
       return gameLogic.updateGameState(state);
@@ -66,6 +76,124 @@ const gameReducer = (state, action) => {
         errorMessage: null
       };
 
+    case GAME_ACTIONS.REALLOCATE_BUDGET:
+      const { fromCategory, toCategory, amount } = action.payload;
+      const currentFinanceState = state.financeState || initialFinanceState;
+      
+      const fromAllocated = currentFinanceState.cityBudget.allocated[fromCategory] || 0;
+      const fromSpent = currentFinanceState.cityBudget.spent[fromCategory] || 0;
+      const availableFromCategory = fromAllocated - fromSpent;
+
+      if (availableFromCategory < amount) {
+        return {
+          ...state,
+          errorMessage: 'Недостаточно свободных средств в исходной категории'
+        };
+      }
+
+      return {
+        ...state,
+        financeState: {
+          ...currentFinanceState,
+          cityBudget: {
+            ...currentFinanceState.cityBudget,
+            allocated: {
+              ...currentFinanceState.cityBudget.allocated,
+              [fromCategory]: fromAllocated - amount,
+              [toCategory]: (currentFinanceState.cityBudget.allocated[toCategory] || 0) + amount
+            }
+          }
+        }
+      };
+
+    case GAME_ACTIONS.PERFORM_CORRUPTION:
+      const { type, amount: corruptionAmount, category } = action.payload;
+      const financeState = state.financeState || initialFinanceState;
+      
+      // Проверяем возможность операции
+      const canPerform = financeHelpers.canPerformCorruption(
+        corruptionAmount, 
+        type, 
+        financeState
+      );
+
+      if (!canPerform.canPerform) {
+        return {
+          ...state,
+          errorMessage: canPerform.reason
+        };
+      }
+
+      // Проверяем наличие средств в категории
+      const categoryAllocated = financeState.cityBudget.allocated[category] || 0;
+      const categorySpentCurrent = financeState.cityBudget.spent[category] || 0;
+      const availableInCategory = categoryAllocated - categorySpentCurrent;
+
+      if (availableInCategory < corruptionAmount) {
+        return {
+          ...state,
+          errorMessage: 'Недостаточно средств в выбранной категории'
+        };
+      }
+
+      // Рассчитываем риски
+      const riskIncrease = Math.min(20, corruptionAmount / 100000);
+      const newRisks = {
+        ...financeState.risks,
+        investigationRisk: Math.min(100, (financeState.risks.investigationRisk || 0) + riskIncrease),
+        publicSuspicion: Math.min(100, (financeState.risks.publicSuspicion || 0) + riskIncrease * 0.5),
+        federalAttention: Math.min(100, (financeState.risks.federalAttention || 0) + riskIncrease * 0.3)
+      };
+
+      // Определяем куда поступают средства
+      let targetAccount = 'checking';
+      if (type === 'kickbacks') targetAccount = 'cash';
+      if (type === 'embezzlement') targetAccount = 'offshore';
+
+      return {
+        ...state,
+        financeState: {
+          ...financeState,
+          cityBudget: {
+            ...financeState.cityBudget,
+            spent: {
+              ...financeState.cityBudget.spent,
+              [category]: categorySpentCurrent + corruptionAmount
+            }
+          },
+          personalFinances: {
+            ...financeState.personalFinances,
+            accounts: {
+              ...financeState.personalFinances.accounts,
+              [targetAccount]: (financeState.personalFinances.accounts[targetAccount] || 0) + 
+                              corruptionAmount * 0.8 // 20% "расходы" на операцию
+            }
+          },
+          corruptionHistory: [
+            ...financeState.corruptionHistory,
+            {
+              id: Date.now(),
+              type,
+              amount: corruptionAmount,
+              category,
+              timestamp: Date.now(),
+              risk: riskIncrease
+            }
+          ],
+          risks: newRisks
+        },
+        mayorRating: Math.max(0, state.mayorRating - riskIncrease * 0.1)
+      };
+
+    case GAME_ACTIONS.UPDATE_FINANCE_STATE:
+      return {
+        ...state,
+        financeState: {
+          ...(state.financeState || initialFinanceState),
+          ...action.payload
+        }
+      };
+
     default:
       return state;
   }
@@ -73,7 +201,10 @@ const gameReducer = (state, action) => {
 
 // Провайдер контекста
 export const GameProvider = ({ children }) => {
-  const [gameState, dispatch] = useReducer(gameReducer, initialGameState);
+  const [gameState, dispatch] = useReducer(gameReducer, {
+    ...initialGameState,
+    financeState: initialFinanceState
+  });
 
   // Загрузка сохраненной игры при инициализации
   useEffect(() => {
@@ -163,6 +294,28 @@ export const GameProvider = ({ children }) => {
     // Принудительное обновление состояния (для отладки)
     forceUpdate: () => {
       dispatch({ type: GAME_ACTIONS.UPDATE_GAME_STATE });
+    },
+
+    // Финансовые операции
+    reallocateBudget: (fromCategory, toCategory, amount) => {
+      dispatch({ 
+        type: GAME_ACTIONS.REALLOCATE_BUDGET, 
+        payload: { fromCategory, toCategory, amount }
+      });
+    },
+
+    performCorruption: (type, amount, category) => {
+      dispatch({ 
+        type: GAME_ACTIONS.PERFORM_CORRUPTION, 
+        payload: { type, amount, category }
+      });
+    },
+
+    updateFinanceState: (financeUpdate) => {
+      dispatch({ 
+        type: GAME_ACTIONS.UPDATE_FINANCE_STATE, 
+        payload: financeUpdate
+      });
     }
   };
 
@@ -182,8 +335,16 @@ export const GameProvider = ({ children }) => {
     currentDate: `${gameState.currentDay}.${gameState.currentMonth.toString().padStart(2, '0')}.${gameState.currentYear}`,
     
     // Статус бюджета
-    budgetStatus: gameState.budget > 20000000 ? 'good' : 
-                  gameState.budget > 5000000 ? 'warning' : 'critical',
+    budgetStatus: (() => {
+      const financeState = gameState.financeState || initialFinanceState;
+      const totalBudget = financeHelpers.getTotalBudget(financeState.cityBudget);
+      const totalSpent = financeHelpers.getTotalSpent(financeState.cityBudget);
+      const remaining = totalBudget - totalSpent;
+      
+      if (remaining < totalBudget * 0.1) return 'critical';
+      if (remaining < totalBudget * 0.3) return 'warning';
+      return 'good';
+    })(),
     
     // Общий статус города
     cityStatus: (() => {
@@ -192,7 +353,25 @@ export const GameProvider = ({ children }) => {
       if (avg >= 50) return 'good';
       if (avg >= 30) return 'poor';
       return 'critical';
-    })()
+    })(),
+
+    // Финансовые показатели
+    totalPersonalWealth: financeHelpers.getTotalPersonalWealth(
+      gameState.financeState?.personalFinances || initialFinanceState.personalFinances
+    ),
+    
+    corruptionRisk: financeHelpers.calculateCorruptionRisk(
+      gameState.financeState?.corruptionHistory || [],
+      gameState.financeState?.risks || initialFinanceState.risks
+    ),
+
+    monthlyIncome: financeHelpers.getMonthlyIncome(
+      gameState.financeState?.cityBudget || initialFinanceState.cityBudget
+    ),
+
+    monthlyExpenses: financeHelpers.getMonthlyExpenses(
+      gameState.financeState?.cityBudget || initialFinanceState.cityBudget
+    )
   };
 
   const value = {
