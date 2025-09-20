@@ -53,7 +53,7 @@ import {
   Banknote,
   Gem,
   Building,
-  Yacht,
+  Ship,
   Music,
   GraduationCap,
   Users,
