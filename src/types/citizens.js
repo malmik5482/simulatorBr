@@ -503,7 +503,7 @@ export const citizenHelpers = {
   },
 
   // Расчет влияния группы на рейтинг мэра
-  calculateGroupInfluence: (group, gameState) => {
+  calculateGroupInfluence: (group) => {
     let influence = group.influence;
     
     // Корректировка на основе политической активности
@@ -575,7 +575,7 @@ export const citizenHelpers = {
   },
 
   // Расчет изменения удовлетворенности
-  calculateSatisfactionChange: (response, issue, group, gameState) => {
+  calculateSatisfactionChange: (response, issue, group) => {
     const effectiveness = citizenHelpers.calculateResponseEffectiveness(response, issue, group);
     
     let change = 0;
@@ -652,7 +652,7 @@ export const citizenHelpers = {
   },
 
   // Генерация события на основе недовольства
-  generateProtestEvent: (groups, gameState) => {
+  generateProtestEvent: (groups) => {
     const protestPotential = citizenHelpers.calculateProtestPotential(groups);
     
     if (protestPotential > 30 && Math.random() < 0.3) {

@@ -94,9 +94,7 @@ import {
 
 const ConstructionManager = () => {
   const { gameState, actions } = useGame();
-  const [selectedProject, setSelectedProject] = useState(null);
   const [selectedKickbacks, setSelectedKickbacks] = useState([]);
-  const [selectedUtility, setSelectedUtility] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [filterDistrict, setFilterDistrict] = useState('all');
   const [sortBy, setSortBy] = useState('cost');
@@ -151,13 +149,11 @@ const ConstructionManager = () => {
 
   const handleStartProject = (projectId, kickbacks = []) => {
     actions.startConstructionProject(projectId, kickbacks);
-    setSelectedProject(null);
     setSelectedKickbacks([]);
   };
 
   const handleUpgradeUtility = (utilityId) => {
     actions.upgradeUtility(utilityId);
-    setSelectedUtility(null);
   };
 
   const filteredProjects = constructionProjects
@@ -176,8 +172,7 @@ const ConstructionManager = () => {
     });
 
   const overallUtilityQuality = constructionHelpers.calculateUtilityQuality(utilities);
-  const totalPopulation = Object.values(districts).reduce((sum, district) => sum + district.population, 0);
-  const averageInfrastructure = Object.values(districts).reduce((sum, district) => 
+  const averageInfrastructure = Object.values(districts).reduce((sum, district) =>
     sum + district.infrastructure_quality, 0) / Object.keys(districts).length;
 
   return (
@@ -463,9 +458,8 @@ const ConstructionManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
-                          onClick={() => setSelectedProject(project)}
                           disabled={!requirements.all_met}
                         >
                           Подробнее
@@ -660,10 +654,9 @@ const ConstructionManager = () => {
                         
                         <DialogFooter>
                           <div className="flex gap-2 w-full">
-                            <Button 
+                            <Button
                               variant="outline"
                               onClick={() => {
-                                setSelectedProject(null);
                                 setSelectedKickbacks([]);
                               }}
                               className="flex-1"
@@ -749,9 +742,8 @@ const ConstructionManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
-                          onClick={() => setSelectedUtility(type)}
                         >
                           <Wrench className="w-4 h-4 mr-2" />
                           Модернизировать
@@ -827,9 +819,8 @@ const ConstructionManager = () => {
                         
                         <DialogFooter>
                           <div className="flex gap-2 w-full">
-                            <Button 
+                            <Button
                               variant="outline"
-                              onClick={() => setSelectedUtility(null)}
                               className="flex-1"
                             >
                               Отмена

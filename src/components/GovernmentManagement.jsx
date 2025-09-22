@@ -50,7 +50,7 @@ import {
   Shield
 } from 'lucide-react';
 import { useGame } from '../contexts/GameContext.jsx';
-import { 
+import {
   GovernmentDepartments,
   DepartmentLabels,
   PositionLevels,
@@ -58,16 +58,13 @@ import {
   EmployeeQualities,
   QualityLabels,
   DecisionTypes,
-  employeesData,
   policyOptions,
-  governmentHelpers 
+  governmentHelpers
 } from '../types/government.js';
 
 const GovernmentManagement = () => {
   const { gameState, actions } = useGame();
   const [selectedDepartment, setSelectedDepartment] = useState(GovernmentDepartments.ADMINISTRATION);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [newSalary, setNewSalary] = useState(0);
   const [decisionText, setDecisionText] = useState('');
 
@@ -126,12 +123,10 @@ const GovernmentManagement = () => {
   const handleChangeSalary = (employeeId, newSalary) => {
     actions.changeEmployeeSalary(employeeId, newSalary);
     setNewSalary(0);
-    setSelectedEmployee(null);
   };
 
   const handleImplementPolicy = (policyId) => {
     actions.implementPolicy(policyId);
-    setSelectedPolicy(null);
   };
 
   const handleMakeDecision = (type, data) => {
@@ -401,10 +396,9 @@ const GovernmentManagement = () => {
                             
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
-                                  onClick={() => setSelectedEmployee(employee)}
                                 >
                                   Управление
                                 </Button>

@@ -66,7 +66,7 @@ import {
   Video
 } from 'lucide-react';
 import { useGame } from '../contexts/GameContext.jsx';
-import { 
+import {
   CitizenGroups,
   CitizenGroupLabels,
   CommunicationChannels,
@@ -77,15 +77,11 @@ import {
   ResponseTypeLabels,
   SatisfactionLevels,
   SatisfactionLevelLabels,
-  citizenGroupsData,
-  citizenIssues,
-  citizenHelpers 
+  citizenHelpers
 } from '../types/citizens.js';
 
 const CitizenCommunication = () => {
   const { gameState, actions } = useGame();
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [selectedIssue, setSelectedIssue] = useState(null);
   const [responseType, setResponseType] = useState('');
   const [responseAmount, setResponseAmount] = useState(0);
   const [responseMessage, setResponseMessage] = useState('');
@@ -155,7 +151,6 @@ const CitizenCommunication = () => {
 
   const handleRespondToIssue = (issueId, response) => {
     actions.respondToIssue(issueId, response);
-    setSelectedIssue(null);
     setResponseType('');
     setResponseAmount(0);
     setResponseMessage('');
@@ -163,7 +158,6 @@ const CitizenCommunication = () => {
 
   const handleScheduleMeeting = (groupId) => {
     actions.scheduleMeeting(groupId);
-    setSelectedGroup(null);
   };
 
   const filteredIssues = activeIssues
@@ -352,9 +346,8 @@ const CitizenCommunication = () => {
 
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button 
+                          <Button
                             className="w-full"
-                            onClick={() => setSelectedIssue(issue)}
                           >
                             Ответить на обращение
                           </Button>
@@ -521,10 +514,9 @@ const CitizenCommunication = () => {
                           
                           <DialogFooter>
                             <div className="flex gap-2 w-full">
-                              <Button 
+                              <Button
                                 variant="outline"
                                 onClick={() => {
-                                  setSelectedIssue(null);
                                   setResponseType('');
                                   setResponseAmount(0);
                                   setResponseMessage('');
@@ -665,9 +657,8 @@ const CitizenCommunication = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
-                          onClick={() => setSelectedGroup(group)}
                         >
                           Взаимодействие
                         </Button>
@@ -739,9 +730,8 @@ const CitizenCommunication = () => {
                         
                         <DialogFooter>
                           <div className="flex gap-2 w-full">
-                            <Button 
+                            <Button
                               variant="outline"
-                              onClick={() => setSelectedGroup(null)}
                               className="flex-1"
                             >
                               Закрыть

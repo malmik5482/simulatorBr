@@ -76,13 +76,11 @@ const IndustryManager = () => {
   const { gameState, actions } = useGame();
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedKickbacks, setSelectedKickbacks] = useState([]);
-  const [selectedEnterprise, setSelectedEnterprise] = useState(null);
   const [filterIndustry, setFilterIndustry] = useState('all');
   const [filterType, setFilterType] = useState('all');
 
   const industryState = gameState.industryState || {};
   const activeProjects = industryState.activeProjects || [];
-  const completedProjects = industryState.completedProjects || [];
   const enterprises = industryState.enterprises || existingEnterprises;
   const industryMetrics = industryState.industryMetrics || {};
   const kickbacks = industryState.kickbacks || {};
@@ -149,7 +147,6 @@ const IndustryManager = () => {
 
   const handleModernizeEnterprise = (enterpriseId) => {
     actions.modernizeEnterprise(enterpriseId);
-    setSelectedEnterprise(null);
   };
 
   const handleKickbackSelection = (kickback, isSelected) => {
@@ -743,10 +740,9 @@ const IndustryManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
                           disabled={!enterprise.modernizationNeeded}
-                          onClick={() => setSelectedEnterprise(enterprise)}
                         >
                           {enterprise.modernizationNeeded ? 'Модернизировать' : 'Модернизация не требуется'}
                         </Button>

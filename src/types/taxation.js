@@ -626,7 +626,7 @@ export const taxationHelpers = {
   },
 
   // Генерация рекомендаций по налоговой политике
-  generateTaxRecommendations: (currentState, gameState) => {
+  generateTaxRecommendations: (currentState) => {
     const recommendations = [];
     
     // Анализ бюджетного баланса

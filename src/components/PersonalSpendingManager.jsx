@@ -80,7 +80,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { useGame } from '../contexts/GameContext.jsx';
-import { 
+import {
   SpendingCategories,
   SpendingCategoryLabels,
   RiskLevels,
@@ -88,12 +88,19 @@ import {
   SpendingTypes,
   SpendingTypeLabels,
   personalSpendingOptions,
-  personalSpendingHelpers 
+  personalSpendingHelpers
 } from '../types/personalSpending.js';
+
+const RISK_ORDER = {
+  very_low: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+  very_high: 5
+};
 
 const PersonalSpendingManager = () => {
   const { gameState, actions } = useGame();
-  const [selectedOption, setSelectedOption] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterRisk, setFilterRisk] = useState('all');
   const [sortBy, setSortBy] = useState('cost');
@@ -130,7 +137,6 @@ const PersonalSpendingManager = () => {
 
   const handlePurchase = (optionId, customAmount = null) => {
     actions.makePersonalPurchase(optionId, customAmount);
-    setSelectedOption(null);
   };
 
   const filteredOptions = personalSpendingOptions
@@ -139,9 +145,8 @@ const PersonalSpendingManager = () => {
     .sort((a, b) => {
       switch (sortBy) {
         case 'cost': return a.cost - b.cost;
-        case 'risk': 
-          const riskOrder = { very_low: 1, low: 2, medium: 3, high: 4, very_high: 5 };
-          return riskOrder[a.risk_level] - riskOrder[b.risk_level];
+        case 'risk':
+          return RISK_ORDER[a.risk_level] - RISK_ORDER[b.risk_level];
         case 'detection': return a.detection_probability - b.detection_probability;
         default: return 0;
       }
@@ -438,9 +443,8 @@ const PersonalSpendingManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
-                          onClick={() => setSelectedOption(option)}
                           disabled={!availability.available}
                         >
                           Подробнее
@@ -577,9 +581,8 @@ const PersonalSpendingManager = () => {
                         
                         <DialogFooter>
                           <div className="flex gap-2 w-full">
-                            <Button 
+                            <Button
                               variant="outline"
-                              onClick={() => setSelectedOption(null)}
                               className="flex-1"
                             >
                               Отмена

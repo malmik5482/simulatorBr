@@ -61,7 +61,7 @@ import {
   Gavel
 } from 'lucide-react';
 import { useGame } from '../contexts/GameContext.jsx';
-import { 
+import {
   SecurityAgencies,
   SecurityAgencyLabels,
   InfluenceLevels,
@@ -70,22 +70,18 @@ import {
   OperationTypeLabels,
   ThreatLevels,
   ThreatLevelLabels,
-  securityAgenciesData,
   securityThreats,
-  securityHelpers 
+  securityHelpers
 } from '../types/security.js';
 
 const SecurityManager = () => {
   const { gameState, actions } = useGame();
-  const [selectedAgency, setSelectedAgency] = useState(null);
   const [selectedOperation, setSelectedOperation] = useState(null);
-  const [selectedThreat, setSelectedThreat] = useState(null);
   const [operationAmount, setOperationAmount] = useState(0);
 
   const securityState = gameState.securityState || {};
   const agencies = securityState.agencies || {};
   const activeThreats = securityState.activeThreats || [];
-  const securityMetrics = securityState.securityMetrics || {};
   const operationHistory = securityState.operationHistory || [];
 
   const getAgencyIcon = (agency) => {
@@ -143,8 +139,6 @@ const SecurityManager = () => {
     if (!agency) return;
 
     const cost = securityHelpers.calculateOperationCost(operation, agency);
-    const successRate = securityHelpers.calculateOperationSuccess(operation, agency, gameState);
-
     if (operationAmount && operationAmount !== cost) {
       // Пользователь указал другую сумму
       const customOperation = { ...operation, cost: operationAmount };
@@ -153,14 +147,12 @@ const SecurityManager = () => {
       actions.executeSecurityOperation(agencyId, operation);
     }
 
-    setSelectedAgency(null);
     setSelectedOperation(null);
     setOperationAmount(0);
   };
 
   const handleMitigateThreat = (threatId, mitigationOption) => {
     actions.mitigateThreat(threatId, mitigationOption);
-    setSelectedThreat(null);
   };
 
   const overallInfluence = securityHelpers.calculateOverallInfluence(agencies);
@@ -262,7 +254,6 @@ const SecurityManager = () => {
             {Object.values(agencies).map((agency) => {
               const Icon = getAgencyIcon(agency.agency);
               const totalBribes = agency.totalBribes || 0;
-              const lastInteraction = agency.lastInteraction;
               
               return (
                 <Card key={agency.id} className="hover:shadow-lg transition-shadow">
@@ -373,9 +364,8 @@ const SecurityManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
-                          onClick={() => setSelectedAgency(agency)}
                         >
                           Взаимодействие
                         </Button>
@@ -516,10 +506,9 @@ const SecurityManager = () => {
                         
                         <DialogFooter>
                           <div className="flex gap-2 w-full">
-                            <Button 
+                            <Button
                               variant="outline"
                               onClick={() => {
-                                setSelectedAgency(null);
                                 setSelectedOperation(null);
                                 setOperationAmount(0);
                               }}

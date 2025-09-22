@@ -28,12 +28,13 @@ const GAME_ACTIONS = {
 // Reducer для управления состоянием игры
 const gameReducer = (state, action) => {
   switch (action.type) {
-    case GAME_ACTIONS.LOAD_GAME:
+    case GAME_ACTIONS.LOAD_GAME: {
       const loadedState = action.payload || initialGameState;
       return {
         ...loadedState,
         financeState: loadedState.financeState || initialFinanceState
       };
+    }
 
     case GAME_ACTIONS.UPDATE_GAME_STATE:
       return gameLogic.updateGameState(state);
@@ -76,10 +77,10 @@ const gameReducer = (state, action) => {
         errorMessage: null
       };
 
-    case GAME_ACTIONS.REALLOCATE_BUDGET:
+    case GAME_ACTIONS.REALLOCATE_BUDGET: {
       const { fromCategory, toCategory, amount } = action.payload;
       const currentFinanceState = state.financeState || initialFinanceState;
-      
+
       const fromAllocated = currentFinanceState.cityBudget.allocated[fromCategory] || 0;
       const fromSpent = currentFinanceState.cityBudget.spent[fromCategory] || 0;
       const availableFromCategory = fromAllocated - fromSpent;
@@ -105,15 +106,16 @@ const gameReducer = (state, action) => {
           }
         }
       };
+    }
 
-    case GAME_ACTIONS.PERFORM_CORRUPTION:
+    case GAME_ACTIONS.PERFORM_CORRUPTION: {
       const { type, amount: corruptionAmount, category } = action.payload;
       const financeState = state.financeState || initialFinanceState;
-      
+
       // Проверяем возможность операции
       const canPerform = financeHelpers.canPerformCorruption(
-        corruptionAmount, 
-        type, 
+        corruptionAmount,
+        type,
         financeState
       );
 
@@ -165,7 +167,7 @@ const gameReducer = (state, action) => {
             ...financeState.personalFinances,
             accounts: {
               ...financeState.personalFinances.accounts,
-              [targetAccount]: (financeState.personalFinances.accounts[targetAccount] || 0) + 
+              [targetAccount]: (financeState.personalFinances.accounts[targetAccount] || 0) +
                               corruptionAmount * 0.8 // 20% "расходы" на операцию
             }
           },
@@ -184,6 +186,7 @@ const gameReducer = (state, action) => {
         },
         mayorRating: Math.max(0, state.mayorRating - riskIncrease * 0.1)
       };
+    }
 
     case GAME_ACTIONS.UPDATE_FINANCE_STATE:
       return {

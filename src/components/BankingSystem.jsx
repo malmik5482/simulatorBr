@@ -60,8 +60,6 @@ import {
 
 const BankingSystem = () => {
   const { gameState, actions } = useGame();
-  const [selectedAccount, setSelectedAccount] = useState(BankAccountTypes.CITY_CHECKING);
-  const [selectedStock, setSelectedStock] = useState(null);
   const [stockQuantity, setStockQuantity] = useState(0);
   const [transferAmount, setTransferAmount] = useState(0);
   const [transferFrom, setTransferFrom] = useState('');
@@ -105,18 +103,6 @@ const BankingSystem = () => {
     
     actions.buyStock(stockId, quantity, stock.price, accountType, commission);
     setStockQuantity(0);
-    setSelectedStock(null);
-  };
-
-  const handleSellStock = (stockId, quantity, isPersonal = false) => {
-    const stock = stocksData.find(s => s.id === stockId);
-    if (!stock) return;
-
-    const totalValue = stock.price * quantity;
-    const commission = bankingHelpers.calculateCommission(totalValue, 'stock_sell');
-    const accountType = isPersonal ? BankAccountTypes.PERSONAL_INVESTMENT : BankAccountTypes.CITY_INVESTMENT;
-    
-    actions.sellStock(stockId, quantity, stock.price, accountType, commission);
   };
 
   const handleTransfer = () => {
@@ -332,10 +318,9 @@ const BankingSystem = () => {
 
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             className="w-full"
-                            onClick={() => setSelectedStock(stock)}
                           >
                             Купить акции
                           </Button>
