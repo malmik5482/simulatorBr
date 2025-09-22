@@ -69,7 +69,6 @@ import {
 
 const InvestmentManager = () => {
   const { gameState, actions } = useGame();
-  const [selectedInvestment, setSelectedInvestment] = useState(null);
   const [investmentAmount, setInvestmentAmount] = useState(0);
   const [selectedSector, setSelectedSector] = useState('all');
   const [selectedRisk, setSelectedRisk] = useState('all');
@@ -77,8 +76,6 @@ const InvestmentManager = () => {
 
   const investmentState = gameState.investmentState || {};
   const activeInvestments = investmentState.activeInvestments || [];
-  const completedInvestments = investmentState.completedInvestments || [];
-  const portfolio = investmentState.portfolio || {};
   const investmentMetrics = investmentState.investmentMetrics || {};
 
   const getSectorIcon = (sector) => {
@@ -148,7 +145,6 @@ const InvestmentManager = () => {
 
     actions.makeInvestment(investmentId, amount);
     setInvestmentAmount(0);
-    setSelectedInvestment(null);
   };
 
   const handleWithdraw = (investmentId, amount) => {
@@ -408,10 +404,9 @@ const InvestmentManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
                           disabled={!canInvest.canInvest}
-                          onClick={() => setSelectedInvestment(investment)}
                         >
                           {canInvest.canInvest ? 'Инвестировать' : 'Недоступно'}
                         </Button>

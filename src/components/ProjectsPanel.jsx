@@ -36,7 +36,6 @@ import { gameStateHelpers } from '../types/game.js';
 const ProjectsPanel = () => {
   const { gameState, actions } = useGame();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedProject, setSelectedProject] = useState(null);
 
   const categoryIcons = {
     [ProjectCategories.INFRASTRUCTURE]: Building2,
@@ -96,9 +95,8 @@ const ProjectsPanel = () => {
 
   const availableProjects = cityProjects.filter(project => {
     const isNotActive = !gameState.activeProjects?.some(active => active.id === project.id);
-    const canStart = projectHelpers.canStartProject(project, gameState);
     const categoryMatch = selectedCategory === 'all' || project.category === selectedCategory;
-    
+
     return isNotActive && categoryMatch;
   });
 
@@ -108,7 +106,6 @@ const ProjectsPanel = () => {
 
   const handleStartProject = (projectId) => {
     actions.startProject(projectId);
-    setSelectedProject(null);
   };
 
   const handleCancelProject = (projectId) => {

@@ -662,7 +662,7 @@ export const constructionHelpers = {
 
   // Расчет влияния на удовлетворенность граждан
   calculateSatisfactionImpact: (project, gameState) => {
-    let impact = { ...project.benefits.citizen_satisfaction } || {};
+    const impact = { ...(project.benefits.citizen_satisfaction || {}) };
     
     // Модификаторы влияния
     const completionBonus = 1.2; // бонус за завершение

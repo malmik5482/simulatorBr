@@ -105,16 +105,6 @@ const BudgetManager = () => {
     }
   };
 
-  const getBudgetStatus = (category) => {
-    const allocated = cityBudget.allocated?.[category] || 0;
-    const spent = cityBudget.spent?.[category] || 0;
-    const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
-    
-    if (percentage >= 90) return { status: 'critical', color: 'bg-red-500' };
-    if (percentage >= 70) return { status: 'warning', color: 'bg-yellow-500' };
-    return { status: 'good', color: 'bg-green-500' };
-  };
-
   const getCorruptionRisk = () => {
     const risk = financeHelpers.calculateCorruptionRisk(
       financeState.corruptionHistory || [], 
@@ -235,15 +225,14 @@ const BudgetManager = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Категории бюджета</h3>
               <div className="space-y-3">
-                {Object.entries(BudgetCategories).map(([key, category]) => {
+                {Object.entries(BudgetCategories).map(([, category]) => {
                   const CategoryIcon = categoryIcons[category];
                   const allocated = cityBudget.allocated?.[category] || 0;
                   const spent = cityBudget.spent?.[category] || 0;
                   const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
-                  const budgetStatus = getBudgetStatus(category);
-                  
+
                   return (
-                    <Card 
+                    <Card
                       key={category}
                       className={`cursor-pointer transition-colors ${
                         selectedCategory === category ? 'ring-2 ring-blue-500' : ''
@@ -344,7 +333,7 @@ const BudgetManager = () => {
                           <option value="">Выберите категорию</option>
                           {Object.entries(BudgetCategories)
                             .filter(([, cat]) => cat !== selectedCategory)
-                            .map(([key, category]) => (
+                            .map(([, category]) => (
                               <option key={category} value={category}>
                                 {BudgetCategoryLabels[category]}
                               </option>
@@ -384,7 +373,7 @@ const BudgetManager = () => {
                             onChange={(e) => setCorruptionType(e.target.value)}
                             className="w-full p-2 border rounded-md"
                           >
-                            {Object.entries(CorruptionTypes).map(([key, type]) => (
+                            {Object.entries(CorruptionTypes).map(([, type]) => (
                               <option key={type} value={type}>
                                 {CorruptionTypeLabels[type]}
                               </option>
@@ -440,10 +429,10 @@ const BudgetManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {Object.entries(IncomeTypes).map(([key, type]) => {
+                {Object.entries(IncomeTypes).map(([, type]) => {
                   const amount = cityBudget.monthlyIncome?.[type] || 0;
                   const percentage = monthlyIncome > 0 ? (amount / monthlyIncome) * 100 : 0;
-                  
+
                   return (
                     <div key={type} className="flex items-center justify-between">
                       <div className="flex-1">
@@ -479,7 +468,7 @@ const BudgetManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {Object.entries(BudgetCategories).map(([key, category]) => {
+                {Object.entries(BudgetCategories).map(([, category]) => {
                   const amount = cityBudget.monthlyExpenses?.[category] || 0;
                   const percentage = monthlyExpenses > 0 ? (amount / monthlyExpenses) * 100 : 0;
                   const CategoryIcon = categoryIcons[category];
@@ -537,7 +526,7 @@ const BudgetManager = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {Object.entries(PersonalAccountTypes).map(([key, type]) => {
+                  {Object.entries(PersonalAccountTypes).map(([, type]) => {
                     const amount = personalFinances.accounts?.[type] || 0;
                     const percentage = personalWealth > 0 ? (amount / personalWealth) * 100 : 0;
                     

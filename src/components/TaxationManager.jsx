@@ -80,10 +80,8 @@ import {
 
 const TaxationManager = () => {
   const { gameState, actions } = useGame();
-  const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetChanges, setBudgetChanges] = useState({});
-  const [selectedTax, setSelectedTax] = useState(null);
   const [newTaxRate, setNewTaxRate] = useState(0);
 
   const taxationState = gameState.taxationState || {};
@@ -153,21 +151,15 @@ const TaxationManager = () => {
     return taxationHelpers.calculateTaxRevenue(taxType, rate, base, efficiency);
   };
 
-  const totalTaxRevenue = Object.keys(currentRates).reduce((total, taxType) => {
-    return total + calculateTaxRevenue(taxType);
-  }, 0);
-
   const budgetBalance = taxationHelpers.analyzeBudgetBalance(revenueStructure, expenditureStructure);
   const debtBurden = taxationHelpers.calculateDebtBurden(debt, budgetBalance.total_revenue);
 
   const handleImplementPolicy = (policyId) => {
     actions.implementTaxPolicy(policyId);
-    setSelectedPolicy(null);
   };
 
   const handleChangeTaxRate = (taxType, newRate) => {
     actions.changeTaxRate(taxType, newRate);
-    setSelectedTax(null);
     setNewTaxRate(0);
   };
 
@@ -181,7 +173,7 @@ const TaxationManager = () => {
     !activePolicies.some(active => active.id === policy.id)
   );
 
-  const recommendations = taxationHelpers.generateTaxRecommendations(taxationState, gameState);
+  const recommendations = taxationHelpers.generateTaxRecommendations(taxationState);
 
   return (
     <div className="space-y-6">
@@ -451,10 +443,9 @@ const TaxationManager = () => {
 
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           className="w-full"
                           onClick={() => {
-                            setSelectedTax(taxType);
                             setNewTaxRate(rate);
                           }}
                         >
@@ -531,10 +522,9 @@ const TaxationManager = () => {
                         
                         <DialogFooter>
                           <div className="flex gap-2 w-full">
-                            <Button 
+                            <Button
                               variant="outline"
                               onClick={() => {
-                                setSelectedTax(null);
                                 setNewTaxRate(0);
                               }}
                               className="flex-1"
@@ -719,9 +709,8 @@ const TaxationManager = () => {
 
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button 
+                      <Button
                         className="w-full"
-                        onClick={() => setSelectedPolicy(policy)}
                       >
                         Подробнее
                       </Button>
@@ -782,9 +771,8 @@ const TaxationManager = () => {
                       
                       <DialogFooter>
                         <div className="flex gap-2 w-full">
-                          <Button 
+                          <Button
                             variant="outline"
-                            onClick={() => setSelectedPolicy(null)}
                             className="flex-1"
                           >
                             Отмена
