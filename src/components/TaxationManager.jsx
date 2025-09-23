@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
 } from '@/components/ui/dialog.jsx';
 import {
   Table,
@@ -64,7 +65,7 @@ import {
   Award,
   AlertCircle
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   TaxTypes,
   TaxTypeLabels,
@@ -80,7 +81,6 @@ import {
 
 const TaxationManager = () => {
   const { gameState, actions } = useGame();
-  const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [editingBudget, setEditingBudget] = useState(false);
   const [budgetChanges, setBudgetChanges] = useState({});
   const [selectedTax, setSelectedTax] = useState(null);
@@ -160,10 +160,9 @@ const TaxationManager = () => {
   const budgetBalance = taxationHelpers.analyzeBudgetBalance(revenueStructure, expenditureStructure);
   const debtBurden = taxationHelpers.calculateDebtBurden(debt, budgetBalance.total_revenue);
 
-  const handleImplementPolicy = (policyId) => {
-    actions.implementTaxPolicy(policyId);
-    setSelectedPolicy(null);
-  };
+    const handleImplementPolicy = (policyId) => {
+      actions.implementTaxPolicy(policyId);
+    };
 
   const handleChangeTaxRate = (taxType, newRate) => {
     actions.changeTaxRate(taxType, newRate);
@@ -177,11 +176,17 @@ const TaxationManager = () => {
     setBudgetChanges({});
   };
 
-  const availablePolicies = taxPolicies.filter(policy => 
+  const availablePolicies = taxPolicies.filter(policy =>
     !activePolicies.some(active => active.id === policy.id)
   );
 
   const recommendations = taxationHelpers.generateTaxRecommendations(taxationState, gameState);
+  const selectedTaxDetails = selectedTax ? {
+    rate: currentRates[selectedTax] || 0,
+    revenue: calculateTaxRevenue(selectedTax),
+    base: taxBase[selectedTax] || 0,
+    efficiency: collectionEfficiency[selectedTax] || 0
+  } : null;
 
   return (
     <div className="space-y-6">
@@ -208,7 +213,7 @@ const TaxationManager = () => {
       </div>
 
       {/* Основные показатели */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -263,6 +268,18 @@ const TaxationManager = () => {
                 </p>
               </div>
               <CreditCard className="w-8 h-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Сумма налоговых доходов</p>
+                <p className="text-2xl font-bold text-green-600">{taxationHelpers.formatAmount(totalTaxRevenue)}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -419,9 +436,15 @@ const TaxationManager = () => {
               const revenue = calculateTaxRevenue(taxType);
               const base = taxBase[taxType] || 0;
               const efficiency = collectionEfficiency[taxType] || 0;
-              
+
               return (
-                <Card key={taxType} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={taxType}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedTax === taxType ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedTax(taxType)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -557,6 +580,31 @@ const TaxationManager = () => {
               );
             })}
           </div>
+
+          {selectedTaxDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Детали налога: {TaxTypeLabels[selectedTax]}</span>
+                  <Badge variant="outline">Ставка {taxationHelpers.formatPercentage(selectedTaxDetails.rate)}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Налоговая база</div>
+                  <div className="font-semibold">{taxationHelpers.formatAmount(selectedTaxDetails.base)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Собираемость</div>
+                  <div className="font-semibold">{taxationHelpers.formatPercentage(selectedTaxDetails.efficiency)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Поступления</div>
+                  <div className="font-semibold text-green-600">{taxationHelpers.formatAmount(selectedTaxDetails.revenue)}</div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Бюджет */}
@@ -717,15 +765,14 @@ const TaxationManager = () => {
                     </div>
                   </div>
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        className="w-full"
-                        onClick={() => setSelectedPolicy(policy)}
-                      >
-                        Подробнее
-                      </Button>
-                    </DialogTrigger>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          className="w-full"
+                        >
+                          Подробнее
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>{policy.name}</DialogTitle>
@@ -780,24 +827,27 @@ const TaxationManager = () => {
                         </div>
                       </div>
                       
-                      <DialogFooter>
-                        <div className="flex gap-2 w-full">
-                          <Button 
-                            variant="outline"
-                            onClick={() => setSelectedPolicy(null)}
-                            className="flex-1"
-                          >
-                            Отмена
-                          </Button>
-                          <Button 
-                            onClick={() => handleImplementPolicy(policy.id)}
-                            className="flex-1"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Внедрить политику
-                          </Button>
-                        </div>
-                      </DialogFooter>
+                        <DialogFooter>
+                          <div className="flex gap-2 w-full">
+                            <DialogClose asChild>
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                              >
+                                Отмена
+                              </Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button
+                                onClick={() => handleImplementPolicy(policy.id)}
+                                className="flex-1"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Внедрить политику
+                              </Button>
+                            </DialogClose>
+                          </div>
+                        </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </CardContent>

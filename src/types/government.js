@@ -417,7 +417,7 @@ export const governmentHelpers = {
   },
 
   // Генерация случайного события в департаменте
-  generateDepartmentEvent: (department, employees) => {
+  generateDepartmentEvent: () => {
     const events = [
       {
         type: 'corruption_scandal',
@@ -494,7 +494,7 @@ export const governmentHelpers = {
   },
 
   // Поиск кандидатов на должность
-  findCandidates: (department, level, requirements = {}) => {
+  findCandidates: () => {
     // Здесь будет логика поиска кандидатов
     // Пока возвращаем заглушку
     return [];

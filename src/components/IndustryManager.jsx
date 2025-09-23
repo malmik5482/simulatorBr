@@ -57,7 +57,7 @@ import {
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   IndustryTypes,
   IndustryLabels,
@@ -664,6 +664,36 @@ const IndustryManager = () => {
                   </Card>
                 );
               })}
+
+              {completedProjects.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Завершенные проекты</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    {completedProjects.slice(-5).reverse().map((project) => {
+                      const Icon = getIndustryIcon(project.industry);
+                      return (
+                        <div key={project.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium">{project.name}</div>
+                              <div className="text-xs text-gray-500">
+                                Завершен: {new Date(project.completedAt || Date.now()).toLocaleDateString('ru-RU')}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">Откаты</div>
+                            <div className="font-semibold text-green-600">{industryHelpers.formatAmount(project.kickbacksReceived || 0)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           ) : (
             <Card>
@@ -686,11 +716,17 @@ const IndustryManager = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {enterprises.map((enterprise) => {
               const Icon = getIndustryIcon(enterprise.industry);
-              const modernizationROI = enterprise.modernizationNeeded ? 
+              const modernizationROI = enterprise.modernizationNeeded ?
                 industryHelpers.calculateModernizationROI(enterprise, enterprise.modernizationCost) : null;
-              
+
               return (
-                <Card key={enterprise.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={enterprise.id}
+                  className={`hover:shadow-md transition-shadow ${
+                    selectedEnterprise?.id === enterprise.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedEnterprise(enterprise)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -847,6 +883,39 @@ const IndustryManager = () => {
               );
             })}
           </div>
+
+          {selectedEnterprise && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранное предприятие: {selectedEnterprise.name}</span>
+                  <Badge variant="outline">{IndustryLabels[selectedEnterprise.industry]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Сотрудники</div>
+                  <div className="font-semibold">{selectedEnterprise.employees.toLocaleString('ru-RU')}</div>
+                  <div className="text-xs text-gray-500 mt-1">Выручка: {industryHelpers.formatAmount(selectedEnterprise.annualRevenue)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Налоговые поступления</div>
+                  <div className="font-semibold text-purple-600">{industryHelpers.formatAmount(selectedEnterprise.taxContribution)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Статус: {selectedEnterprise.status}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Потенциал модернизации</div>
+                  {selectedEnterprise.modernizationNeeded ? (
+                    <div className="text-xs text-green-600 mt-1">
+                      Возможный рост эффективности: +{selectedEnterprise.modernizationBenefits.efficiency}%<br />Новые рабочие места: +{selectedEnterprise.modernizationBenefits.jobs}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500 mt-1">Модернизация не требуется</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* История откатов */}

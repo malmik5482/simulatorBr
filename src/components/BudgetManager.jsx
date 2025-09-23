@@ -48,7 +48,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   BudgetCategories, 
   BudgetCategoryLabels, 
@@ -86,6 +86,12 @@ const BudgetManager = () => {
     [BudgetCategories.SECURITY]: Shield,
     [BudgetCategories.ADMINISTRATION]: Settings,
     [BudgetCategories.EMERGENCY]: AlertTriangle
+  };
+
+  const budgetStatusLabels = {
+    critical: 'Критично',
+    warning: 'Требует внимания',
+    good: 'Стабильно'
   };
 
   const handleReallocateFunds = () => {
@@ -235,15 +241,15 @@ const BudgetManager = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Категории бюджета</h3>
               <div className="space-y-3">
-                {Object.entries(BudgetCategories).map(([key, category]) => {
+                {Object.values(BudgetCategories).map((category) => {
                   const CategoryIcon = categoryIcons[category];
                   const allocated = cityBudget.allocated?.[category] || 0;
                   const spent = cityBudget.spent?.[category] || 0;
                   const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
                   const budgetStatus = getBudgetStatus(category);
-                  
+
                   return (
-                    <Card 
+                    <Card
                       key={category}
                       className={`cursor-pointer transition-colors ${
                         selectedCategory === category ? 'ring-2 ring-blue-500' : ''
@@ -260,7 +266,12 @@ const BudgetManager = () => {
                             {financeHelpers.formatMoney(allocated)}
                           </Badge>
                         </div>
-                        
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className={`w-2 h-2 rounded-full ${budgetStatus.color}`} />
+                          <span>{budgetStatusLabels[budgetStatus.status]}</span>
+                        </div>
+
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span>Потрачено: {financeHelpers.formatMoney(spent)}</span>
@@ -342,9 +353,9 @@ const BudgetManager = () => {
                           className="w-full p-2 border rounded-md"
                         >
                           <option value="">Выберите категорию</option>
-                          {Object.entries(BudgetCategories)
-                            .filter(([, cat]) => cat !== selectedCategory)
-                            .map(([key, category]) => (
+                          {Object.values(BudgetCategories)
+                            .filter((cat) => cat !== selectedCategory)
+                            .map((category) => (
                               <option key={category} value={category}>
                                 {BudgetCategoryLabels[category]}
                               </option>
@@ -384,7 +395,7 @@ const BudgetManager = () => {
                             onChange={(e) => setCorruptionType(e.target.value)}
                             className="w-full p-2 border rounded-md"
                           >
-                            {Object.entries(CorruptionTypes).map(([key, type]) => (
+                            {Object.values(CorruptionTypes).map((type) => (
                               <option key={type} value={type}>
                                 {CorruptionTypeLabels[type]}
                               </option>
@@ -440,10 +451,10 @@ const BudgetManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {Object.entries(IncomeTypes).map(([key, type]) => {
+                {Object.values(IncomeTypes).map((type) => {
                   const amount = cityBudget.monthlyIncome?.[type] || 0;
                   const percentage = monthlyIncome > 0 ? (amount / monthlyIncome) * 100 : 0;
-                  
+
                   return (
                     <div key={type} className="flex items-center justify-between">
                       <div className="flex-1">
@@ -479,7 +490,7 @@ const BudgetManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {Object.entries(BudgetCategories).map(([key, category]) => {
+                {Object.values(BudgetCategories).map((category) => {
                   const amount = cityBudget.monthlyExpenses?.[category] || 0;
                   const percentage = monthlyExpenses > 0 ? (amount / monthlyExpenses) * 100 : 0;
                   const CategoryIcon = categoryIcons[category];
@@ -537,7 +548,7 @@ const BudgetManager = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {Object.entries(PersonalAccountTypes).map(([key, type]) => {
+                  {Object.values(PersonalAccountTypes).map((type) => {
                     const amount = personalFinances.accounts?.[type] || 0;
                     const percentage = personalWealth > 0 ? (amount / personalWealth) * 100 : 0;
                     

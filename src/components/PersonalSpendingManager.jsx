@@ -79,7 +79,7 @@ import {
   Settings,
   MoreHorizontal
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   SpendingCategories,
   SpendingCategoryLabels,
@@ -138,12 +138,16 @@ const PersonalSpendingManager = () => {
     .filter(option => filterRisk === 'all' || option.risk_level === filterRisk)
     .sort((a, b) => {
       switch (sortBy) {
-        case 'cost': return a.cost - b.cost;
-        case 'risk': 
+        case 'cost':
+          return a.cost - b.cost;
+        case 'risk': {
           const riskOrder = { very_low: 1, low: 2, medium: 3, high: 4, very_high: 5 };
           return riskOrder[a.risk_level] - riskOrder[b.risk_level];
-        case 'detection': return a.detection_probability - b.detection_probability;
-        default: return 0;
+        }
+        case 'detection':
+          return a.detection_probability - b.detection_probability;
+        default:
+          return 0;
       }
     });
 
@@ -354,9 +358,15 @@ const PersonalSpendingManager = () => {
               const CategoryIcon = getCategoryIcon(option.category);
               const availability = personalSpendingHelpers.checkAvailability(option, gameState);
               const ratingImpact = personalSpendingHelpers.calculateRatingImpact(option, gameState);
-              
+
               return (
-                <Card key={option.id} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={option.id}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedOption?.id === option.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedOption(option)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -602,6 +612,42 @@ const PersonalSpendingManager = () => {
               );
             })}
           </div>
+
+          {selectedOption && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранная трата: {selectedOption.name}</span>
+                  <Badge variant="outline">{SpendingCategoryLabels[selectedOption.category]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Стоимость</div>
+                  <div className="font-semibold">{personalSpendingHelpers.formatAmount(selectedOption.cost)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Тип: {SpendingTypeLabels[selectedOption.type]}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Риск обнаружения</div>
+                  <div className={`font-semibold ${personalSpendingHelpers.getRiskColor(selectedOption.risk_level)}`}>
+                    {selectedOption.detection_probability}%
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Рейтинг: {personalSpendingHelpers.calculateRatingImpact(selectedOption, gameState).toFixed(1)}%</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Выгоды</div>
+                  <div className="space-y-1 mt-1 text-xs">
+                    {Object.entries(selectedOption.benefits).map(([benefit, value]) => (
+                      <div key={benefit} className="flex justify-between">
+                        <span>{benefit}</span>
+                        <span className="font-medium">{typeof value === 'number' ? value : value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Активы */}

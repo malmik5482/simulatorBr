@@ -14,7 +14,7 @@ import {
   Calendar,
   Clock
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { gameStateHelpers } from '../types/game.js';
 
 const Dashboard = () => {
@@ -30,19 +30,6 @@ const Dashboard = () => {
       if (value >= 70) return 'text-green-600';
       if (value >= 40) return 'text-yellow-600';
       return 'text-red-600';
-    }
-  };
-
-  // Функция для получения цвета прогресс-бара
-  const getProgressColor = (value, reverse = false) => {
-    if (reverse) {
-      if (value <= 5) return 'bg-green-500';
-      if (value <= 10) return 'bg-yellow-500';
-      return 'bg-red-500';
-    } else {
-      if (value >= 70) return 'bg-green-500';
-      if (value >= 40) return 'bg-yellow-500';
-      return 'bg-red-500';
     }
   };
 

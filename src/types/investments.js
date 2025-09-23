@@ -614,7 +614,7 @@ export const investmentHelpers = {
   },
 
   // Генерация случайных событий для инвестиций
-  generateInvestmentEvent: (investment) => {
+  generateInvestmentEvent: () => {
     const events = [
       {
         type: 'regulatory_change',

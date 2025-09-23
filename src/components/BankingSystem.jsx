@@ -42,7 +42,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   BankAccountTypes, 
   BankAccountLabels,
@@ -60,13 +60,13 @@ import {
 
 const BankingSystem = () => {
   const { gameState, actions } = useGame();
-  const [selectedAccount, setSelectedAccount] = useState(BankAccountTypes.CITY_CHECKING);
-  const [selectedStock, setSelectedStock] = useState(null);
+  const [_selectedStock, setSelectedStock] = useState(null);
   const [stockQuantity, setStockQuantity] = useState(0);
   const [transferAmount, setTransferAmount] = useState(0);
   const [transferFrom, setTransferFrom] = useState('');
   const [transferTo, setTransferTo] = useState('');
   const [showPersonalAccounts, setShowPersonalAccounts] = useState(false);
+  const [depositAmounts, setDepositAmounts] = useState({});
 
   const bankingState = gameState.bankingState || {};
   const accounts = bankingState.accounts || {};
@@ -108,17 +108,6 @@ const BankingSystem = () => {
     setSelectedStock(null);
   };
 
-  const handleSellStock = (stockId, quantity, isPersonal = false) => {
-    const stock = stocksData.find(s => s.id === stockId);
-    if (!stock) return;
-
-    const totalValue = stock.price * quantity;
-    const commission = bankingHelpers.calculateCommission(totalValue, 'stock_sell');
-    const accountType = isPersonal ? BankAccountTypes.PERSONAL_INVESTMENT : BankAccountTypes.CITY_INVESTMENT;
-    
-    actions.sellStock(stockId, quantity, stock.price, accountType, commission);
-  };
-
   const handleTransfer = () => {
     if (transferAmount > 0 && transferFrom && transferTo && transferFrom !== transferTo) {
       actions.transferFunds(transferFrom, transferTo, transferAmount);
@@ -132,8 +121,14 @@ const BankingSystem = () => {
     actions.takeLoan(loanId);
   };
 
-  const handleCreateDeposit = (depositId, amount) => {
-    actions.createDeposit(depositId, amount);
+  const handleCreateDeposit = (depositId) => {
+    const offer = depositOffers.find(deposit => deposit.id === depositId);
+    const rawValue = depositAmounts[depositId];
+    const amountValue = rawValue !== undefined && rawValue !== ''
+      ? Number(rawValue)
+      : (offer ? offer.minAmount : 0);
+
+    actions.createDeposit(depositId, amountValue);
   };
 
   const totalCityBalance = bankingHelpers.getTotalBalance(accounts, null);
@@ -578,8 +573,13 @@ const BankingSystem = () => {
                             <div>
                               <Label htmlFor="deposit-amount">Сумма депозита</Label>
                               <Input
-                                id="deposit-amount"
+                                id={`deposit-amount-${deposit.id}`}
                                 type="number"
+                                value={depositAmounts[deposit.id] ?? deposit.minAmount.toString()}
+                                onChange={(e) => setDepositAmounts(prev => ({
+                                  ...prev,
+                                  [deposit.id]: e.target.value
+                                }))}
                                 placeholder={`От ${deposit.minAmount}`}
                               />
                             </div>
@@ -596,7 +596,7 @@ const BankingSystem = () => {
                             </div>
                           </div>
                           <DialogFooter>
-                            <Button onClick={() => handleCreateDeposit(deposit.id, 0)}>
+                            <Button onClick={() => handleCreateDeposit(deposit.id)}>
                               Открыть депозит
                             </Button>
                           </DialogFooter>
