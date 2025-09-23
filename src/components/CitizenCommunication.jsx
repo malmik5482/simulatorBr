@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
@@ -166,9 +166,44 @@ const CitizenCommunication = () => {
     setSelectedGroup(null);
   };
 
+  const resolveGroupInfo = (groupKeyOrId) => {
+    return (
+      groups[groupKeyOrId] ||
+      Object.values(groups).find(group => group.group === groupKeyOrId) ||
+      citizenGroupsData.find(group => group.group === groupKeyOrId || group.id === groupKeyOrId) ||
+      null
+    );
+  };
+
   const filteredIssues = activeIssues
     .filter(issue => filterGroup === 'all' || issue.group === filterGroup)
     .filter(issue => filterType === 'all' || issue.type === filterType);
+
+  const highlightedIssue = selectedIssue || filteredIssues[0] || null;
+  const highlightedGroup = highlightedIssue ? resolveGroupInfo(highlightedIssue.group) : null;
+  const selectedGroupReference = selectedGroup ? resolveGroupInfo(selectedGroup.id) : null;
+
+  useEffect(() => {
+    if (filteredIssues.length === 0) {
+      if (selectedIssue) {
+        setSelectedIssue(null);
+      }
+      return;
+    }
+
+    const issueStillVisible = selectedIssue && filteredIssues.some(issue => issue.id === selectedIssue.id);
+    if (!issueStillVisible) {
+      setSelectedIssue(filteredIssues[0]);
+    }
+  }, [filteredIssues, selectedIssue]);
+
+  useEffect(() => {
+    if (selectedIssue) {
+      setResponseType('');
+      setResponseAmount(selectedIssue.cost);
+      setResponseMessage('');
+    }
+  }, [selectedIssue]);
 
   const overallSatisfaction = citizenHelpers.calculateOverallSatisfaction(groups);
   const protestPotential = citizenHelpers.calculateProtestPotential(groups);
@@ -301,6 +336,51 @@ const CitizenCommunication = () => {
             </CardContent>
           </Card>
 
+          {highlightedIssue && (
+            <Card>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Приоритетное обращение</div>
+                  <div className="font-semibold">{highlightedIssue.title}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Стоимость решения: {citizenHelpers.formatAmount(highlightedIssue.cost)}
+                  </div>
+                </div>
+                {highlightedGroup && (
+                  <div>
+                    <div className="text-gray-500">Группа</div>
+                    <div className="font-semibold flex items-center gap-2">
+                      {CitizenGroupLabels[highlightedGroup.group]}
+                      <Badge variant="outline">Удовл. {highlightedGroup.satisfaction}%</Badge>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Предпочитаемые каналы: {highlightedGroup.preferredChannels
+                        .slice(0, 2)
+                        .map(channel => CommunicationChannelLabels[channel])
+                        .join(', ')}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-gray-500">Рекомендуемый ответ</div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(highlightedIssue.expectedResponse || []).map((type) => (
+                      <Badge key={type} variant="outline" className="text-xs">
+                        {ResponseTypeLabels[type]}
+                      </Badge>
+                    ))}
+                    {highlightedIssue.expectedResponse?.length === 0 && (
+                      <span className="text-xs text-gray-500">Нет рекомендаций</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Поддержка: {highlightedIssue.support} человек • Срочность: {highlightedIssue.urgency}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Список обращений */}
           {filteredIssues.length > 0 ? (
             <div className="space-y-4">
@@ -308,9 +388,15 @@ const CitizenCommunication = () => {
                 const IssueIcon = getIssueIcon(issue.type);
                 const ChannelIcon = getChannelIcon(issue.channel);
                 const group = groups[`bryansk_${issue.group}`];
-                
+
                 return (
-                  <Card key={issue.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={issue.id}
+                    className={`hover:shadow-lg transition-shadow ${
+                      selectedIssue?.id === issue.id ? 'ring-2 ring-blue-500' : ''
+                    }`}
+                    onMouseEnter={() => setSelectedIssue(issue)}
+                  >
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-start gap-3">
@@ -575,9 +661,14 @@ const CitizenCommunication = () => {
               const GroupIcon = getGroupIcon(group.group);
               const satisfactionColor = citizenHelpers.getSatisfactionColor(group.satisfaction);
               const influenceColor = citizenHelpers.getInfluenceColor(group.influence);
-              
               return (
-                <Card key={group.id} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={group.id}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedGroup?.id === group.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedGroup(group)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -762,6 +853,62 @@ const CitizenCommunication = () => {
               );
             })}
           </div>
+
+          {selectedGroup && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Фокус: {selectedGroup.name}</span>
+                  <Badge variant="outline">Влияние {selectedGroup.influence}%</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-gray-500">Удовлетворенность</div>
+                    <div className={citizenHelpers.getSatisfactionColor(selectedGroup.satisfaction)}>
+                      {selectedGroup.satisfaction}%
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Протестный потенциал</div>
+                    <div className="font-semibold">{selectedGroup.characteristics.protest_potential}%</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Население</div>
+                    <div className="font-semibold">{selectedGroup.population.toLocaleString('ru-RU')} чел.</div>
+                  </div>
+                </div>
+
+                {selectedGroupReference?.preferredChannels && (
+                  <div className="text-xs text-gray-500">
+                    Источник данных: профайл «{selectedGroupReference.name}». Предпочитаемые каналы: {selectedGroupReference
+                      .preferredChannels
+                      .slice(0, 3)
+                      .map(channel => CommunicationChannelLabels[channel])
+                      .join(', ')}.
+                  </div>
+                )}
+
+                <div>
+                  <div className="text-gray-500 mb-1">Актуальные проблемы</div>
+                  <div className="flex flex-wrap gap-2">
+                    {citizenIssues
+                      .filter(issue => issue.group === selectedGroup.group)
+                      .slice(0, 3)
+                      .map(issue => (
+                        <Badge key={issue.id} variant="outline" className="text-xs">
+                          {issue.title}
+                        </Badge>
+                      ))}
+                    {citizenIssues.filter(issue => issue.group === selectedGroup.group).length === 0 && (
+                      <span className="text-xs text-gray-500">Нет зарегистрированных обращений</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Собрания и встречи */}

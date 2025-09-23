@@ -177,8 +177,18 @@ const ConstructionManager = () => {
 
   const overallUtilityQuality = constructionHelpers.calculateUtilityQuality(utilities);
   const totalPopulation = Object.values(districts).reduce((sum, district) => sum + district.population, 0);
-  const averageInfrastructure = Object.values(districts).reduce((sum, district) => 
+  const averageInfrastructure = Object.values(districts).reduce((sum, district) =>
     sum + district.infrastructure_quality, 0) / Object.keys(districts).length;
+  const selectedProjectDetails = selectedProject ? selectedProject : null;
+  const selectedProjectEconomics = selectedProjectDetails ?
+    constructionHelpers.calculateEconomicImpact(selectedProjectDetails) : null;
+  const selectedProjectRequirements = selectedProjectDetails ?
+    constructionHelpers.checkProjectRequirements(selectedProjectDetails, gameState) : null;
+  const selectedProjectRisks = selectedProjectDetails ?
+    constructionHelpers.evaluateProjectRisks(selectedProjectDetails, gameState) : null;
+  const selectedUtilityData = selectedUtility ? utilities[selectedUtility] : null;
+  const selectedUtilityUpgrades = selectedUtility ?
+    utilityServices.filter(service => service.type === selectedUtility) : [];
 
   return (
     <div className="space-y-6">
@@ -256,6 +266,20 @@ const ConstructionManager = () => {
                 </p>
               </div>
               <Zap className="w-8 h-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Население под управлением</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {totalPopulation.toLocaleString('ru-RU')}
+                </p>
+              </div>
+              <MapPin className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -375,9 +399,15 @@ const ConstructionManager = () => {
               const risks = constructionHelpers.evaluateProjectRisks(project, gameState);
               const economicImpact = constructionHelpers.calculateEconomicImpact(project);
               const priority = constructionHelpers.calculateProjectPriority(project, gameState);
-              
+
               return (
-                <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={project.id}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedProject?.id === project.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedProject(project)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -462,11 +492,11 @@ const ConstructionManager = () => {
                     </div>
 
                     <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          className="w-full"
-                          onClick={() => setSelectedProject(project)}
-                          disabled={!requirements.all_met}
+                          <DialogTrigger asChild>
+                            <Button
+                              className="w-full"
+                              onClick={() => setSelectedProject(project)}
+                              disabled={!requirements.all_met}
                         >
                           Подробнее
                         </Button>
@@ -688,6 +718,68 @@ const ConstructionManager = () => {
               );
             })}
           </div>
+
+          {selectedProjectDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранный проект: {selectedProjectDetails.name}</span>
+                  <Badge variant="outline">{ConstructionTypeLabels[selectedProjectDetails.type]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                {selectedProjectEconomics && (
+                  <div>
+                    <div className="text-gray-500">Экономический эффект</div>
+                    <div className="font-semibold text-green-600">
+                      {constructionHelpers.formatAmount(selectedProjectEconomics.total_impact)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      ROI: {selectedProjectEconomics.roi_percentage.toFixed(1)}%
+                    </div>
+                  </div>
+                )}
+                {selectedProjectRequirements && (
+                  <div>
+                    <div className="text-gray-500">Требования</div>
+                    <div className="space-y-1 mt-1">
+                      {Object.entries(selectedProjectRequirements)
+                        .filter(([key]) => key !== 'all_met')
+                        .map(([key, met]) => (
+                          <div key={key} className="flex items-center gap-2">
+                            {met ? (
+                              <CheckCircle className="w-3 h-3 text-green-600" />
+                            ) : (
+                              <AlertTriangle className="w-3 h-3 text-red-600" />
+                            )}
+                            <span className="text-xs capitalize">{key.replace(/_/g, ' ')}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+                {selectedProjectRisks && (
+                  <div>
+                    <div className="text-gray-500">Уровень риска</div>
+                    <div className={`font-semibold ${
+                      selectedProjectRisks.risk_level === 'high'
+                        ? 'text-red-600'
+                        : selectedProjectRisks.risk_level === 'medium'
+                          ? 'text-yellow-600'
+                          : 'text-green-600'
+                    }`}>
+                      {selectedProjectRisks.total_risk}%
+                    </div>
+                    {selectedProjectRisks.recommendations.length > 0 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {selectedProjectRisks.recommendations.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Коммунальные услуги */}
@@ -696,9 +788,15 @@ const ConstructionManager = () => {
             {Object.entries(utilities).map(([type, data]) => {
               const UtilityIcon = getUtilityIcon(type);
               const averageScore = (data.coverage * 0.6 + data.quality * 0.4);
-              
+
               return (
-                <Card key={type} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={type}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedUtility === type ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedUtility(type)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -850,6 +948,47 @@ const ConstructionManager = () => {
               );
             })}
           </div>
+
+          {selectedUtilityData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранная услуга: {UtilityTypeLabels[selectedUtility]}</span>
+                  <Badge variant="outline">Состояние {selectedUtilityData.quality}%</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-gray-500">Покрытие</div>
+                    <div className="font-semibold">{selectedUtilityData.coverage}%</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Качество</div>
+                    <div className="font-semibold">{selectedUtilityData.quality}%</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Удовлетворенность</div>
+                    <div className="font-semibold">{selectedUtilityData.satisfaction}%</div>
+                  </div>
+                </div>
+                {selectedUtilityUpgrades.length > 0 ? (
+                  <div>
+                    <div className="text-gray-500 mb-1">Доступные модернизации</div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedUtilityUpgrades.map((service) => (
+                        <Badge key={service.id} variant="outline" className="text-xs">
+                          {service.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-500">Нет предложений по улучшению</div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Районы города */}

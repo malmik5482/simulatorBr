@@ -33,19 +33,6 @@ const Dashboard = () => {
     }
   };
 
-  // Функция для получения цвета прогресс-бара
-  const getProgressColor = (value, reverse = false) => {
-    if (reverse) {
-      if (value <= 5) return 'bg-green-500';
-      if (value <= 10) return 'bg-yellow-500';
-      return 'bg-red-500';
-    } else {
-      if (value >= 70) return 'bg-green-500';
-      if (value >= 40) return 'bg-yellow-500';
-      return 'bg-red-500';
-    }
-  };
-
   const indicators = [
     {
       title: 'Рейтинг мэра',

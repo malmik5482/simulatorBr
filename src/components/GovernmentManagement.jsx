@@ -140,11 +140,17 @@ const GovernmentManagement = () => {
   };
 
   const departmentEfficiency = governmentHelpers.calculateDepartmentEfficiency(
-    selectedDepartment, 
+    selectedDepartment,
     currentDepartmentEmployees
   );
 
   const departmentCost = governmentHelpers.calculateDepartmentCost(currentDepartmentEmployees);
+  const currentEmployeeIds = new Set(Object.values(employees).flat().map(employee => employee.id));
+  const talentPool = employeesData
+    .filter(candidate => !currentEmployeeIds.has(candidate.id))
+    .sort((a, b) => b.qualities.competence - a.qualities.competence)
+    .slice(0, 3);
+  const selectedEmployeeRisk = selectedEmployee ? governmentHelpers.calculateResignationRisk(selectedEmployee) : null;
 
   return (
     <div className="space-y-6">
@@ -522,6 +528,44 @@ const GovernmentManagement = () => {
               </Card>
             </div>
           </div>
+
+          {selectedPolicy && (() => {
+            const policyDetails = policyOptions.find(item => item.id === selectedPolicy);
+            if (!policyDetails) return null;
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Выбранная политика: {policyDetails.name}</span>
+                    <Badge variant="outline">{policyDetails.duration} дней</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-500">Департамент</div>
+                    <div className="font-semibold">{DepartmentLabels[policyDetails.department]}</div>
+                    <div className="text-xs text-gray-500 mt-1">Стоимость: {policyDetails.cost.toLocaleString('ru-RU')} ₽</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Ключевые эффекты</div>
+                    <div className="space-y-1 mt-1">
+                      {Object.entries(policyDetails.effects).map(([effect, value]) => (
+                        <div key={effect} className={`text-xs ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {effect}: {value >= 0 ? '+' : ''}{value}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Дополнительно</div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {policyDetails.description}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
 
         {/* Все сотрудники */}
@@ -587,7 +631,11 @@ const GovernmentManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="outline">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedEmployee(employee)}
+                            >
                               Управление
                             </Button>
                             {resignationRisk > 70 && (
@@ -604,6 +652,77 @@ const GovernmentManagement = () => {
               </Table>
             </CardContent>
           </Card>
+
+          {selectedEmployee && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранный сотрудник: {selectedEmployee.name}</span>
+                  <Badge variant="outline">Риск ухода {selectedEmployeeRisk}%</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Департамент</div>
+                  <div className="font-semibold">{DepartmentLabels[selectedEmployee.department]}</div>
+                  <div className="text-xs text-gray-500 mt-1">Опыт: {selectedEmployee.experience} лет</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Качества</div>
+                  <div className="space-y-1 mt-1">
+                    {Object.entries(selectedEmployee.qualities).map(([quality, value]) => (
+                      <div key={quality} className="flex justify-between text-xs">
+                        <span>{QualityLabels[quality]}</span>
+                        <span className="font-medium">{value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Рекомендации</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    Рекомендуемая зарплата: {governmentHelpers.calculateRecommendedSalary(selectedEmployee).toLocaleString('ru-RU')} ₽
+                    <br />Настроение: {selectedEmployee.mood}%
+                  </div>
+                  {selectedEmployeeRisk > 60 && (
+                    <Badge variant="destructive" className="mt-2">Высокий риск ухода</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {talentPool.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Кадровый резерв</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                {talentPool.map((candidate) => (
+                  <div key={candidate.id} className="p-3 border rounded-lg">
+                    <div className="font-semibold">{candidate.name}</div>
+                    <div className="text-xs text-gray-500 mb-2">{candidate.position}</div>
+                    <div className="flex justify-between text-xs">
+                      <span>Компетентность</span>
+                      <span className="font-medium">{candidate.qualities[EmployeeQualities.COMPETENCE]}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>Лояльность</span>
+                      <span className="font-medium">{candidate.qualities[EmployeeQualities.LOYALTY]}%</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full mt-2"
+                      variant="outline"
+                      onClick={() => setSelectedDepartment(candidate.department)}
+                    >
+                      Перейти к отделу
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Политики */}
@@ -615,13 +734,19 @@ const GovernmentManagement = () => {
               <div className="space-y-3">
                 {policyOptions.map((policy) => {
                   const canImplement = governmentHelpers.canImplementPolicy(
-                    policy, 
-                    policy.department, 
+                    policy,
+                    policy.department,
                     employees[policy.department]
                   );
-                  
+
                   return (
-                    <Card key={policy.id} className="hover:shadow-md transition-shadow">
+                    <Card
+                      key={policy.id}
+                      className={`hover:shadow-md transition-shadow ${
+                        selectedPolicy === policy.id ? 'ring-2 ring-blue-500' : ''
+                      }`}
+                      onMouseEnter={() => setSelectedPolicy(policy.id)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div>

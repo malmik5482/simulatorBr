@@ -80,6 +80,7 @@ const InvestmentManager = () => {
   const completedInvestments = investmentState.completedInvestments || [];
   const portfolio = investmentState.portfolio || {};
   const investmentMetrics = investmentState.investmentMetrics || {};
+  const selectedInvestmentDetails = selectedInvestment || null;
 
   const getSectorIcon = (sector) => {
     const icons = {
@@ -322,9 +323,15 @@ const InvestmentManager = () => {
               const canInvest = investmentHelpers.canInvest(investment, investment.minInvestment, gameState);
               const expectedReturn = investmentHelpers.calculateExpectedReturn(investment, gameState);
               const riskScore = investmentHelpers.calculateInvestmentRisk(investment, gameState);
-              
+
               return (
-                <Card key={investment.id} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={investment.id}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedInvestment?.id === investment.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedInvestment(investment)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -558,6 +565,44 @@ const InvestmentManager = () => {
               );
             })}
           </div>
+
+          {selectedInvestmentDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранная возможность: {selectedInvestmentDetails.name}</span>
+                  <Badge variant="outline">{SectorLabels[selectedInvestmentDetails.sector]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Минимальные инвестиции</div>
+                  <div className="font-semibold">{investmentHelpers.formatAmount(selectedInvestmentDetails.minInvestment)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Срок: {selectedInvestmentDetails.duration} мес.</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Ожидаемая доходность</div>
+                  <div className="font-semibold text-green-600">
+                    {investmentHelpers.calculateExpectedReturn(selectedInvestmentDetails, gameState).toFixed(1)}% годовых
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Риск: {investmentHelpers.calculateInvestmentRisk(selectedInvestmentDetails, gameState).toFixed(0)}%</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Ключевые выгоды</div>
+                  <div className="space-y-1 mt-1 text-xs">
+                    {selectedInvestmentDetails.cityBenefits && Object.entries(selectedInvestmentDetails.cityBenefits).map(([benefit, value]) => (
+                      <div key={benefit} className={value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {benefit}: {value >= 0 ? '+' : ''}{value}
+                      </div>
+                    ))}
+                    {!selectedInvestmentDetails.cityBenefits && (
+                      <span className="text-gray-500">Дополнительные выгоды не указаны</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Активные инвестиции */}
@@ -648,6 +693,39 @@ const InvestmentManager = () => {
                   </Card>
                 );
               })}
+
+              {completedInvestments.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Завершенные инвестиции</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    {completedInvestments.slice(-5).reverse().map((investment) => {
+                      const originalInvestment = investmentOpportunities.find(inv => inv.id === investment.id);
+                      if (!originalInvestment) return null;
+                      const Icon = getSectorIcon(originalInvestment.sector);
+                      const totalReturn = investment.profit || 0;
+                      const percent = investment.returnPercent || (investment.amount > 0 ? (totalReturn / investment.amount) * 100 : 0);
+                      return (
+                        <div key={investment.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium">{originalInvestment.name}</div>
+                              <div className="text-xs text-gray-500">
+                                Доход: {investmentHelpers.formatAmount(totalReturn)} ({percent >= 0 ? '+' : ''}{percent.toFixed(1)}%)
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Завершено: {new Date(investment.completedAt || Date.now()).toLocaleDateString('ru-RU')}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           ) : (
             <Card>
@@ -667,6 +745,28 @@ const InvestmentManager = () => {
 
         {/* Портфель */}
         <TabsContent value="portfolio" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Сводка портфеля</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <div className="text-gray-500">Инвестировано</div>
+                <div className="font-semibold">{investmentHelpers.formatAmount(portfolio.totalInvested || 0)}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Текущая стоимость</div>
+                <div className="font-semibold text-green-600">{investmentHelpers.formatAmount(portfolio.activeValue || 0)}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Полученная прибыль</div>
+                <div className={`font-semibold ${ (portfolio.totalReturns || 0) >= 0 ? 'text-green-600' : 'text-red-600' }`}>
+                  {investmentHelpers.formatAmount(portfolio.totalReturns || 0)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Распределение по секторам */}
             <Card>
