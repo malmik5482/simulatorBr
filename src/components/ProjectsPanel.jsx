@@ -28,7 +28,7 @@ import {
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { cityProjects, projectHelpers } from '../data/projects.js';
 import { ProjectCategories } from '../types/game.js';
 import { gameStateHelpers } from '../types/game.js';
@@ -96,9 +96,8 @@ const ProjectsPanel = () => {
 
   const availableProjects = cityProjects.filter(project => {
     const isNotActive = !gameState.activeProjects?.some(active => active.id === project.id);
-    const canStart = projectHelpers.canStartProject(project, gameState);
     const categoryMatch = selectedCategory === 'all' || project.category === selectedCategory;
-    
+
     return isNotActive && categoryMatch;
   });
 
@@ -123,7 +122,13 @@ const ProjectsPanel = () => {
     const canAfford = gameStateHelpers.canAffordAction(gameState, project.cost);
 
     return (
-      <Card key={project.id} className="hover:shadow-md transition-shadow">
+      <Card
+        key={project.id}
+        className={`hover:shadow-md transition-shadow ${
+          !isActive && selectedProject?.id === project.id ? 'ring-2 ring-blue-500' : ''
+        }`}
+        onMouseEnter={!isActive ? () => setSelectedProject(project) : undefined}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
@@ -387,6 +392,42 @@ const ProjectsPanel = () => {
               </Card>
             )}
           </div>
+
+          {selectedProject && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Выбранный проект: {selectedProject.title}</span>
+                  <Badge variant="outline">{categoryLabels[selectedProject.category]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Стоимость</div>
+                  <div className="font-semibold">{gameStateHelpers.formatMoney(selectedProject.cost)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Длительность: {selectedProject.duration} дней</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Ежемесячные расходы</div>
+                  <div className="font-semibold text-red-600">{selectedProject.monthlyCost ? gameStateHelpers.formatMoney(selectedProject.monthlyCost) : '—'}</div>
+                  <div className="text-xs text-gray-500 mt-1">Сложность: {getDifficultyLabel(selectedProject.difficulty)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Основные эффекты</div>
+                  <div className="space-y-1 mt-1 text-xs">
+                    {selectedProject.effects && Object.entries(selectedProject.effects).map(([key, value]) => (
+                      <div key={key} className={value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {key}: {value >= 0 ? '+' : ''}{value}
+                      </div>
+                    ))}
+                    {!selectedProject.effects && (
+                      <span className="text-gray-500">Эффекты не указаны</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

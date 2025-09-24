@@ -503,19 +503,19 @@ export const citizenHelpers = {
   },
 
   // Расчет влияния группы на рейтинг мэра
-  calculateGroupInfluence: (group, gameState) => {
+  calculateGroupInfluence: (group) => {
     let influence = group.influence;
-    
+
     // Корректировка на основе политической активности
     influence *= (group.characteristics.political_activity / 100);
-    
+
     // Корректировка на основе явки на выборы
     influence *= (group.demographics.voting_turnout / 100);
-    
+
     // Корректировка на основе размера группы
     const populationWeight = Math.log(group.population / 1000) / 10;
     influence *= (1 + populationWeight);
-    
+
     return Math.min(100, influence);
   },
 
@@ -575,11 +575,11 @@ export const citizenHelpers = {
   },
 
   // Расчет изменения удовлетворенности
-  calculateSatisfactionChange: (response, issue, group, gameState) => {
+  calculateSatisfactionChange: (response, issue, group) => {
     const effectiveness = citizenHelpers.calculateResponseEffectiveness(response, issue, group);
-    
+
     let change = 0;
-    
+
     if (response.type === ResponseTypes.FUNDING && response.amount >= issue.cost) {
       change = 15 + (effectiveness - 50) * 0.3;
     } else if (response.type === ResponseTypes.PROMISE) {
@@ -589,15 +589,15 @@ export const citizenHelpers = {
     } else if (response.type === ResponseTypes.IGNORE) {
       change = -10 - (100 - effectiveness) * 0.2;
     }
-    
+
     // Корректировка на основе истории взаимодействий
-    const promisesFulfillmentRate = group.totalPromises > 0 ? 
+    const promisesFulfillmentRate = group.totalPromises > 0 ?
       group.fulfilledPromises / group.totalPromises : 1;
-    
+
     if (response.type === ResponseTypes.PROMISE) {
       change *= promisesFulfillmentRate;
     }
-    
+
     return Math.round(change);
   },
 
@@ -652,14 +652,14 @@ export const citizenHelpers = {
   },
 
   // Генерация события на основе недовольства
-  generateProtestEvent: (groups, gameState) => {
+  generateProtestEvent: (groups) => {
     const protestPotential = citizenHelpers.calculateProtestPotential(groups);
-    
+
     if (protestPotential > 30 && Math.random() < 0.3) {
       const dissatisfiedGroups = Object.values(groups)
         .filter(group => group.satisfaction < 40)
         .sort((a, b) => a.satisfaction - b.satisfaction);
-      
+
       if (dissatisfiedGroups.length > 0) {
         const mainGroup = dissatisfiedGroups[0];
         return {
@@ -675,7 +675,7 @@ export const citizenHelpers = {
         };
       }
     }
-    
+
     return null;
   }
 };

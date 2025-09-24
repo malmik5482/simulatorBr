@@ -48,7 +48,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   BudgetCategories, 
   BudgetCategoryLabels, 
@@ -86,6 +86,12 @@ const BudgetManager = () => {
     [BudgetCategories.SECURITY]: Shield,
     [BudgetCategories.ADMINISTRATION]: Settings,
     [BudgetCategories.EMERGENCY]: AlertTriangle
+  };
+
+  const budgetStatusLabels = {
+    critical: 'Критично',
+    warning: 'Требует внимания',
+    good: 'Стабильно'
   };
 
   const handleReallocateFunds = () => {
@@ -132,6 +138,10 @@ const BudgetManager = () => {
   const monthlyExpenses = financeHelpers.getMonthlyExpenses(cityBudget);
   const personalWealth = financeHelpers.getTotalPersonalWealth(personalFinances);
   const corruptionRisk = getCorruptionRisk();
+  const monthlyExpenseBreakdown = financeHelpers.getMonthlyExpenseBreakdown(cityBudget);
+  const selectedCategoryMonthlyExpense = financeHelpers.getMonthlyExpenseByCategory(cityBudget, selectedCategory);
+  const projectExpenseEntries = Object.values(cityBudget.projectExpenses || {});
+  const totalProjectExpenses = financeHelpers.getProjectExpensesTotal(cityBudget);
 
   return (
     <div className="space-y-6">
@@ -230,20 +240,24 @@ const BudgetManager = () => {
 
         {/* Распределение бюджета */}
         <TabsContent value="budget" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div
+            className={`grid grid-cols-1 gap-6 ${
+              projectExpenseEntries.length > 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
+            }`}
+          >
             {/* Категории бюджета */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Категории бюджета</h3>
               <div className="space-y-3">
-                {Object.entries(BudgetCategories).map(([key, category]) => {
+                {Object.values(BudgetCategories).map((category) => {
                   const CategoryIcon = categoryIcons[category];
                   const allocated = cityBudget.allocated?.[category] || 0;
                   const spent = cityBudget.spent?.[category] || 0;
                   const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
                   const budgetStatus = getBudgetStatus(category);
-                  
+
                   return (
-                    <Card 
+                    <Card
                       key={category}
                       className={`cursor-pointer transition-colors ${
                         selectedCategory === category ? 'ring-2 ring-blue-500' : ''
@@ -260,7 +274,12 @@ const BudgetManager = () => {
                             {financeHelpers.formatMoney(allocated)}
                           </Badge>
                         </div>
-                        
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span className={`w-2 h-2 rounded-full ${budgetStatus.color}`} />
+                          <span>{budgetStatusLabels[budgetStatus.status]}</span>
+                        </div>
+
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span>Потрачено: {financeHelpers.formatMoney(spent)}</span>
@@ -314,7 +333,7 @@ const BudgetManager = () => {
                     <div>
                       <div className="text-gray-500">Месячные расходы</div>
                       <div className="font-semibold text-red-600">
-                        -{financeHelpers.formatMoney(cityBudget.monthlyExpenses?.[selectedCategory] || 0)}
+                        -{financeHelpers.formatMoney(selectedCategoryMonthlyExpense)}
                       </div>
                     </div>
                   </div>
@@ -342,9 +361,9 @@ const BudgetManager = () => {
                           className="w-full p-2 border rounded-md"
                         >
                           <option value="">Выберите категорию</option>
-                          {Object.entries(BudgetCategories)
-                            .filter(([, cat]) => cat !== selectedCategory)
-                            .map(([key, category]) => (
+                          {Object.values(BudgetCategories)
+                            .filter((cat) => cat !== selectedCategory)
+                            .map((category) => (
                               <option key={category} value={category}>
                                 {BudgetCategoryLabels[category]}
                               </option>
@@ -384,7 +403,7 @@ const BudgetManager = () => {
                             onChange={(e) => setCorruptionType(e.target.value)}
                             className="w-full p-2 border rounded-md"
                           >
-                            {Object.entries(CorruptionTypes).map(([key, type]) => (
+                            {Object.values(CorruptionTypes).map((type) => (
                               <option key={type} value={type}>
                                 {CorruptionTypeLabels[type]}
                               </option>
@@ -440,10 +459,10 @@ const BudgetManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {Object.entries(IncomeTypes).map(([key, type]) => {
+                {Object.values(IncomeTypes).map((type) => {
                   const amount = cityBudget.monthlyIncome?.[type] || 0;
                   const percentage = monthlyIncome > 0 ? (amount / monthlyIncome) * 100 : 0;
-                  
+
                   return (
                     <div key={type} className="flex items-center justify-between">
                       <div className="flex-1">
@@ -479,11 +498,11 @@ const BudgetManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {Object.entries(BudgetCategories).map(([key, category]) => {
-                  const amount = cityBudget.monthlyExpenses?.[category] || 0;
+                {Object.values(BudgetCategories).map((category) => {
+                  const amount = monthlyExpenseBreakdown[category] || 0;
                   const percentage = monthlyExpenses > 0 ? (amount / monthlyExpenses) * 100 : 0;
                   const CategoryIcon = categoryIcons[category];
-                  
+
                   return (
                     <div key={category} className="flex items-center justify-between">
                       <div className="flex-1">
@@ -501,7 +520,7 @@ const BudgetManager = () => {
                     </div>
                   );
                 })}
-                
+
                 <div className="pt-3 border-t">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold">Итого расходов:</span>
@@ -521,6 +540,42 @@ const BudgetManager = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {projectExpenseEntries.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    Проектные расходы
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {projectExpenseEntries.map((entry) => (
+                    <div key={entry.projectId} className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{entry.title}</div>
+                        <div className="text-xs text-gray-500">
+                          Категория: {BudgetCategoryLabels[entry.category] || 'Проекты'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-red-600">
+                          -{financeHelpers.formatMoney(entry.monthlyCost || 0)}
+                        </div>
+                        <div className="text-xs text-gray-500">ежемесячно</div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-3 border-t flex justify-between items-center text-sm font-semibold">
+                    <span>Всего по проектам</span>
+                    <span className="text-red-600">
+                      -{financeHelpers.formatMoney(totalProjectExpenses)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
@@ -537,7 +592,7 @@ const BudgetManager = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {Object.entries(PersonalAccountTypes).map(([key, type]) => {
+                  {Object.values(PersonalAccountTypes).map((type) => {
                     const amount = personalFinances.accounts?.[type] || 0;
                     const percentage = personalWealth > 0 ? (amount / personalWealth) * 100 : 0;
                     

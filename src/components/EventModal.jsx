@@ -18,7 +18,7 @@ import {
   TrendingDown,
   Info
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { gameStateHelpers } from '../types/game.js';
 
 const EventModal = () => {

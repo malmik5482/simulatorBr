@@ -60,7 +60,7 @@ import {
   Scale,
   Gavel
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 import { 
   SecurityAgencies,
   SecurityAgencyLabels,
@@ -145,6 +145,11 @@ const SecurityManager = () => {
     const cost = securityHelpers.calculateOperationCost(operation, agency);
     const successRate = securityHelpers.calculateOperationSuccess(operation, agency, gameState);
 
+    const confirmExecution = window.confirm(`Шанс успеха операции ${successRate.toFixed(0)}%. Продолжить?`);
+    if (!confirmExecution) {
+      return;
+    }
+
     if (operationAmount && operationAmount !== cost) {
       // Пользователь указал другую сумму
       const customOperation = { ...operation, cost: operationAmount };
@@ -167,13 +172,16 @@ const SecurityManager = () => {
   const investigationRisk = securityHelpers.calculateInvestigationRisk(gameState);
   const protectionLevel = securityHelpers.calculateProtectionLevel(agencies);
 
-  const friendlyAgencies = Object.values(agencies).filter(agency => 
+  const friendlyAgencies = Object.values(agencies).filter(agency =>
     agency.influence === InfluenceLevels.FRIENDLY || agency.influence === InfluenceLevels.CONTROLLED
   ).length;
 
-  const hostileAgencies = Object.values(agencies).filter(agency => 
+  const hostileAgencies = Object.values(agencies).filter(agency =>
     agency.influence === InfluenceLevels.HOSTILE || agency.influence === InfluenceLevels.UNFRIENDLY
   ).length;
+  const selectedAgencyReference = selectedAgency ?
+    securityAgenciesData.find(item => item.id === selectedAgency.id || item.agency === selectedAgency.agency) : null;
+  const selectedThreatDetails = selectedThreat ? securityThreats.find(threat => threat.id === selectedThreat.id) : null;
 
   return (
     <div className="space-y-6">
@@ -198,7 +206,7 @@ const SecurityManager = () => {
       </div>
 
       {/* Общая статистика */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -246,6 +254,19 @@ const SecurityManager = () => {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Общий уровень угроз</p>
+                <p className="text-2xl font-bold">{ThreatLevelLabels[securityMetrics.overallThreatLevel] || 'Неизвестно'}</p>
+                <p className="text-xs text-gray-500 mt-1">Коррупционный риск: {securityMetrics.corruptionRisk}%</p>
+              </div>
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="agencies" className="space-y-6">
@@ -263,9 +284,15 @@ const SecurityManager = () => {
               const Icon = getAgencyIcon(agency.agency);
               const totalBribes = agency.totalBribes || 0;
               const lastInteraction = agency.lastInteraction;
-              
+
               return (
-                <Card key={agency.id} className="hover:shadow-lg transition-shadow">
+                <Card
+                  key={agency.id}
+                  className={`hover:shadow-lg transition-shadow ${
+                    selectedAgency?.id === agency.id ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                  onMouseEnter={() => setSelectedAgency(agency)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -306,6 +333,11 @@ const SecurityManager = () => {
                           <span className="font-medium text-purple-600">{agency.head.connections}%</span>
                         </div>
                       </div>
+                      {lastInteraction && (
+                        <div className="text-xs text-gray-500 mt-2">
+                          Последнее взаимодействие: {new Date(lastInteraction).toLocaleDateString('ru-RU')}
+                        </div>
+                      )}
                     </div>
 
                     {/* Основные показатели */}
@@ -544,68 +576,137 @@ const SecurityManager = () => {
               );
             })}
           </div>
+
+          {selectedAgency && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Контроль над агентством: {selectedAgency.name}</span>
+                  <Badge variant="outline">Влияние {InfluenceLevelLabels[selectedAgency.influence]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Бюджет</div>
+                  <div className="font-semibold">{securityHelpers.formatAmount(selectedAgency.budget)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Персонал: {selectedAgency.personnel.toLocaleString('ru-RU')}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Получено откатов</div>
+                  <div className="font-semibold text-green-600">{securityHelpers.formatAmount(selectedAgency.totalBribes || 0)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Лояльность руководителя: {selectedAgency.head.loyalty}%</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Рекомендации</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {selectedAgencyReference ? selectedAgencyReference.description : 'Используйте операции для повышения влияния.'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Угрозы безопасности */}
         <TabsContent value="threats" className="space-y-6">
           {activeThreats.length > 0 ? (
-            <div className="space-y-4">
-              {activeThreats.map((threat) => (
-                <Card key={threat.id} className="border-l-4 border-l-red-500">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="font-semibold text-lg mb-1">{threat.name}</div>
-                        <div className="text-gray-600 mb-2">{threat.description}</div>
-                        <Badge className={getThreatColor(threat.threat_level)}>
-                          {ThreatLevelLabels[threat.threat_level]}
-                        </Badge>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-500">Вероятность</div>
-                        <div className="text-lg font-bold text-red-600">
-                          {(threat.probability * 100).toFixed(0)}%
+            <>
+              <div className="space-y-4">
+                {activeThreats.map((threat) => (
+                  <Card
+                    key={threat.id}
+                    className={`border-l-4 border-l-red-500 ${selectedThreat?.id === threat.id ? 'ring-2 ring-red-400' : ''}`}
+                    onMouseEnter={() => setSelectedThreat(threat)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="font-semibold text-lg mb-1">{threat.name}</div>
+                          <div className="text-gray-600 mb-2">{threat.description}</div>
+                          <Badge className={getThreatColor(threat.threat_level)}>
+                            {ThreatLevelLabels[threat.threat_level]}
+                          </Badge>
                         </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">Вероятность</div>
+                          <div className="text-lg font-bold text-red-600">
+                            {(threat.probability * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {threat.consequences && (
+                        <div className="mb-4">
+                          <div className="text-sm font-medium mb-2">Возможные последствия:</div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {Object.entries(threat.consequences).map(([key, value]) => (
+                              <div key={key} className="flex justify-between">
+                                <span>{key}:</span>
+                                <span className={`font-medium ${typeof value === 'number' && value < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                  {typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {threat.mitigation_options && (
+                        <div>
+                          <div className="text-sm font-medium mb-2">Варианты противодействия:</div>
+                          <div className="flex gap-2">
+                            {threat.mitigation_options.map((option, index) => (
+                              <Button
+                                key={index}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleMitigateThreat(threat.id, option)}
+                              >
+                                {option.description} ({securityHelpers.formatAmount(option.cost)})
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {selectedThreatDetails && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Выбранная угроза: {selectedThreatDetails.name}</span>
+                      <Badge variant="outline">{ThreatLevelLabels[selectedThreatDetails.threat_level]}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="text-gray-500">Вероятность</div>
+                      <div className="font-semibold text-red-600">{(selectedThreatDetails.probability * 100).toFixed(0)}%</div>
+                      <div className="text-xs text-gray-500 mt-1">Категория: {selectedThreatDetails.type}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500">Последствия</div>
+                      <div className="space-y-1 mt-1 text-xs">
+                        {selectedThreatDetails.consequences && Object.entries(selectedThreatDetails.consequences).map(([key, value]) => (
+                          <div key={key} className={typeof value === 'number' && value < 0 ? 'text-red-600' : 'text-gray-600'}>
+                            {key}: {typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    
-                    {threat.consequences && (
-                      <div className="mb-4">
-                        <div className="text-sm font-medium mb-2">Возможные последствия:</div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          {Object.entries(threat.consequences).map(([key, value]) => (
-                            <div key={key} className="flex justify-between">
-                              <span>{key}:</span>
-                              <span className={`font-medium ${typeof value === 'number' && value < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                {typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                    <div>
+                      <div className="text-gray-500">Совет</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {selectedThreatDetails.description}
                       </div>
-                    )}
-
-                    {threat.mitigation_options && (
-                      <div>
-                        <div className="text-sm font-medium mb-2">Варианты противодействия:</div>
-                        <div className="flex gap-2">
-                          {threat.mitigation_options.map((option, index) => (
-                            <Button
-                              key={index}
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleMitigateThreat(threat.id, option)}
-                            >
-                              {option.description} ({securityHelpers.formatAmount(option.cost)})
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
             <Card>
               <CardContent className="text-center py-12">

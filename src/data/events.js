@@ -295,11 +295,10 @@ export const gameEvents = [
         text: 'Организовать грандиозный фестиваль',
         cost: 8000000,
         effects: {
-          budget: -8000000,
+          budget: -6000000,
           happiness: 20,
           mayorRating: 12,
-          // Привлечение туристов
-          budget: 2000000 // доход от туризма
+          tourismIncome: 2000000 // доход от туризма
         }
       },
       {

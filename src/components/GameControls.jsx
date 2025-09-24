@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import { useGame } from '../contexts/GameContext.jsx';
+import { useGame } from '../hooks/useGame.js';
 
 const GameControls = () => {
   const { gameState, actions, computed } = useGame();

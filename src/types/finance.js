@@ -130,7 +130,8 @@ export const initialFinanceState = {
       [BudgetCategories.SECURITY]: 800000,
       [BudgetCategories.ADMINISTRATION]: 700000,
       [BudgetCategories.EMERGENCY]: 200000
-    }
+    },
+    projectExpenses: {}
   },
 
   // Личные финансы мэра
@@ -214,7 +215,57 @@ export const financeHelpers = {
 
   // Расчет месячных расходов
   getMonthlyExpenses: (budgetState) => {
-    return Object.values(budgetState.monthlyExpenses).reduce((sum, amount) => sum + amount, 0);
+    const baseExpenses = Object.values(budgetState.monthlyExpenses || {}).reduce((sum, amount) => sum + amount, 0);
+    const projectExpenses = Object.values(budgetState.projectExpenses || {}).reduce((sum, entry) => {
+      if (!entry) return sum;
+      return sum + (entry.monthlyCost || 0);
+    }, 0);
+
+    return baseExpenses + projectExpenses;
+  },
+
+  // Расходы по категории с учетом активных проектов
+  getMonthlyExpenseByCategory: (budgetState, category) => {
+    if (!category) return 0;
+
+    const baseAmount = budgetState.monthlyExpenses?.[category] || 0;
+    const projectAmount = Object.values(budgetState.projectExpenses || {}).reduce((sum, entry) => {
+      if (!entry || entry.category !== category) return sum;
+      return sum + (entry.monthlyCost || 0);
+    }, 0);
+
+    return baseAmount + projectAmount;
+  },
+
+  // Сводка расходов по категориям
+  getMonthlyExpenseBreakdown: (budgetState) => {
+    const categories = new Set([
+      ...Object.keys(budgetState.monthlyExpenses || {}),
+      ...Object.values(budgetState.projectExpenses || {})
+        .map((entry) => entry?.category)
+        .filter(Boolean)
+    ]);
+
+    const breakdown = {};
+    categories.forEach((category) => {
+      const baseAmount = budgetState.monthlyExpenses?.[category] || 0;
+      const projectAmount = Object.values(budgetState.projectExpenses || {}).reduce((sum, entry) => {
+        if (!entry || entry.category !== category) return sum;
+        return sum + (entry.monthlyCost || 0);
+      }, 0);
+
+      breakdown[category] = baseAmount + projectAmount;
+    });
+
+    return breakdown;
+  },
+
+  // Общий объем расходов на активные проекты
+  getProjectExpensesTotal: (budgetState) => {
+    return Object.values(budgetState.projectExpenses || {}).reduce((sum, entry) => {
+      if (!entry) return sum;
+      return sum + (entry.monthlyCost || 0);
+    }, 0);
   },
 
   // Расчет общих личных средств

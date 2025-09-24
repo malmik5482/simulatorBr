@@ -1,36 +1,104 @@
+import { initialFinanceState, PersonalAccountTypes } from './finance.js';
+import { initialBankingState } from './banking.js';
+import { initialGovernmentState } from './government.js';
+import { initialInvestmentState } from './investments.js';
+import { initialIndustryState } from './industry.js';
+import { initialSecurityState } from './security.js';
+import { initialCitizensState } from './citizens.js';
+import { initialTaxationState } from './taxation.js';
+import { initialConstructionState } from './construction.js';
+import { initialPersonalSpendingState } from './personalSpending.js';
+
 // Типы данных для игрового состояния
 
-// Основное состояние игры
-export const initialGameState = {
-  // Основные показатели
-  budget: 50000000, // Бюджет в рублях
-  mayorRating: 50, // Рейтинг мэра (0-100)
-  population: 372123, // Население
-  happiness: 50, // Уровень счастья населения (0-100)
-  ecology: 40, // Экологический индекс (0-100)
-  infrastructure: 45, // Индекс инфраструктуры (0-100)
-  unemployment: 8.5, // Уровень безработицы (%)
-  
-  // Игровое время
-  currentDay: 1,
-  currentMonth: 1,
-  currentYear: 2025,
-  
-  // Активные проекты
-  activeProjects: [],
-  
-  // История событий
-  eventHistory: [],
-  
-  // Настройки игры
-  gameSpeed: 1, // Скорость игры (1 = нормальная)
-  isPaused: false,
-  
-  // Статистика
-  totalDecisions: 0,
-  successfulProjects: 0,
-  failedProjects: 0
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+const buildPersonalFinancesSnapshot = (personalFinances) => ({
+  personal_account: personalFinances.accounts?.[PersonalAccountTypes.CHECKING] || 0,
+  savings_account: personalFinances.accounts?.[PersonalAccountTypes.SAVINGS] || 0,
+  offshore_account: personalFinances.accounts?.[PersonalAccountTypes.OFFSHORE] || 0,
+  crypto_account: personalFinances.accounts?.[PersonalAccountTypes.CRYPTO] || 0,
+  cash: personalFinances.accounts?.[PersonalAccountTypes.CASH] || 0,
+  monthlyIncome: clone(personalFinances.monthlyIncome || {}),
+  monthlyExpenses: clone(personalFinances.monthlyExpenses || {})
+});
+
+export const createInitialGameState = () => {
+  const financeState = clone(initialFinanceState);
+  const bankingState = clone(initialBankingState);
+  const governmentState = clone(initialGovernmentState);
+  const investmentState = clone(initialInvestmentState);
+  const industryState = clone(initialIndustryState);
+  const securityState = clone(initialSecurityState);
+  const citizensState = clone(initialCitizensState);
+  const taxationState = clone(initialTaxationState);
+  const constructionState = clone(initialConstructionState);
+  const personalSpendingState = clone(initialPersonalSpendingState);
+
+  const baseTimestamp = new Date('2025-01-01T08:00:00Z').getTime();
+
+  return {
+    // Основные показатели
+    budget: 50000000,
+    mayorRating: 50,
+    population: 372123,
+    happiness: 50,
+    ecology: 40,
+    infrastructure: 45,
+    unemployment: 8.5,
+
+    education: 52,
+    culture: 48,
+    corruption: 30,
+    corruption_level: 35,
+    media_attention: 25,
+    federal_relations: 60,
+    environmental_rating: 55,
+    construction_quality: 1,
+    familyHappiness: 50,
+
+    // Игровое время
+    currentDay: 1,
+    currentMonth: 1,
+    currentYear: 2025,
+    currentTimestamp: baseTimestamp,
+
+    // Активные проекты
+    activeProjects: [],
+
+    // История событий
+    eventHistory: [],
+
+    // Настройки игры
+    gameSpeed: 1,
+    isPaused: false,
+
+    // Статистика
+    totalDecisions: 0,
+    successfulProjects: 0,
+    failedProjects: 0,
+
+    // Комплексные подсистемы
+    financeState,
+    bankingState,
+    governmentState,
+    investmentState,
+    industryState,
+    securityState,
+    citizensState,
+    taxationState,
+    constructionState,
+    personalSpendingState,
+
+    // Связанные данные
+    personalFinances: buildPersonalFinancesSnapshot(financeState.personalFinances),
+    citizenGroups: clone(citizensState.groups),
+    budget_balance: 0
+  };
 };
+
+// Основное состояние игры
+export const initialGameState = createInitialGameState();
 
 // Типы событий
 export const EventTypes = {
